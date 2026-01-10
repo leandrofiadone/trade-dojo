@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/* Trading App Custom Styles */
+:root {
+  /* Trading Colors */
+  --color-profit: #10b981; /* green-500 */
+  --color-loss: #ef4444; /* red-500 */
+  --color-profit-bg: #d1fae5; /* green-100 */
+  --color-loss-bg: #fee2e2; /* red-100 */
+
+  /* Chart Colors */
+  --color-chart-up: #22c55e; /* green-500 */
+  --color-chart-down: #ef4444; /* red-500 */
+
+  /* Background Colors */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9fafb; /* gray-50 */
+  --color-bg-card: #ffffff;
+
+  /* Text Colors */
+  --color-text-primary: #111827; /* gray-900 */
+  --color-text-secondary: #6b7280; /* gray-500 */
+
+  /* Border Colors */
+  --color-border: #e5e7eb; /* gray-200 */
+}
+
+/* Dark mode support (optional for future) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-primary: #111827;
+    --color-bg-secondary: #1f2937;
+    --color-bg-card: #1f2937;
+    --color-text-primary: #f9fafb;
+    --color-text-secondary: #9ca3af;
+    --color-border: #374151;
+  }
+}
+
+/* Custom Utility Classes */
+.profit {
+  color: var(--color-profit);
+}
+
+.loss {
+  color: var(--color-loss);
+}
+
+.profit-bg {
+  background-color: var(--color-profit-bg);
+  color: var(--color-profit);
+}
+
+.loss-bg {
+  background-color: var(--color-loss-bg);
+  color: var(--color-loss);
+}
+
+/* Smooth transitions for price changes */
+.price-update {
+  transition: all 0.3s ease;
+}
+
+/* Pulse animation for live updates */
+@keyframes pulse-green {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+    background-color: var(--color-profit-bg);
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+    background-color: var(--color-loss-bg);
+  }
+}
+
+.pulse-profit {
+  animation: pulse-green 0.5s ease-in-out;
+}
+
+.pulse-loss {
+  animation: pulse-red 0.5s ease-in-out;
+}

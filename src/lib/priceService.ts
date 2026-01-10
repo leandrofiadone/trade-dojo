@@ -17,6 +17,29 @@ import type { Asset } from '../types/trading';
 const BINANCE_API_BASE = 'https://api.binance.com/api/v3';
 
 /**
+ * Mapeo de IDs a CoinMarketCap image IDs
+ */
+function getCoingeckoImageId(id: string): number {
+  const map: Record<string, number> = {
+    bitcoin: 1,
+    ethereum: 1027,
+    binancecoin: 1839,
+    solana: 5426,
+    cardano: 2010,
+    ripple: 52,
+    polkadot: 6636,
+    dogecoin: 74,
+    avalanche: 5805,
+    polygon: 3890,
+    chainlink: 1975,
+    litecoin: 2,
+    uniswap: 7083,
+    stellar: 512
+  };
+  return map[id] || 1;
+}
+
+/**
  * Top cryptocurrencies que vamos a trackear
  * Símbolos de trading pairs en Binance (todos contra USDT)
  */
@@ -112,7 +135,7 @@ export async function getMarketPrices(useCache = true): Promise<Asset[]> {
         name: assetInfo.name,
         current_price: currentPrice,
         price_change_percentage_24h: priceChange24h,
-        image: `https://cryptoicons.org/api/icon/${assetInfo.displaySymbol.toLowerCase()}/200`,
+        image: `https://s2.coinmarketcap.com/static/img/coins/64x64/${getCoingeckoImageId(assetInfo.id)}.png`,
         market_cap: currentPrice * volume * 365, // Estimación simple
         total_volume: volume * currentPrice,
         high_24h: high24h,
@@ -139,6 +162,72 @@ export async function getMarketPrices(useCache = true): Promise<Asset[]> {
     }
 
     // Si no hay cache, retornar array vacío
+    return [];
+  }
+}
+
+/**
+ * Obtiene datos históricos de velas (candlesticks) reales de Binance
+ *
+ * @param assetId - ID del asset (ej: 'bitcoin')
+ * @param interval - Intervalo de tiempo ('1m', '5m', '15m', '1h', '4h', '1d')
+ * @param limit - Cantidad de velas a obtener (máx 1000)
+ * @returns Array de datos de velas
+ */
+export async function getHistoricalCandles(
+  assetId: string,
+  interval: '1m' | '5m' | '15m' | '1h' | '4h' | '1d' = '5m',
+  limit: number = 100
+): Promise<any[]> {
+  try {
+    const assetInfo = TRACKED_ASSETS.find(a => a.id === assetId);
+    if (!assetInfo) {
+      console.error(`Asset ${assetId} not found`);
+      return [];
+    }
+
+    const url = `${BINANCE_API_BASE}/klines?symbol=${assetInfo.symbol}&interval=${interval}&limit=${limit}`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Binance API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Binance klines format:
+    // [
+    //   [
+    //     1499040000000,      // Open time
+    //     "0.01634790",       // Open
+    //     "0.80000000",       // High
+    //     "0.01575800",       // Low
+    //     "0.01577100",       // Close
+    //     "148976.11427815",  // Volume
+    //     1499644799999,      // Close time
+    //     "2434.19055334",    // Quote asset volume
+    //     308,                // Number of trades
+    //     "1756.87402397",    // Taker buy base asset volume
+    //     "28.46694368",      // Taker buy quote asset volume
+    //     "17928899.62484339" // Ignore
+    //   ]
+    // ]
+
+    const candles = data.map((kline: any[]) => ({
+      time: Math.floor(kline[0] / 1000), // Convert to seconds
+      open: parseFloat(kline[1]),
+      high: parseFloat(kline[2]),
+      low: parseFloat(kline[3]),
+      close: parseFloat(kline[4]),
+      volume: parseFloat(kline[5])
+    }));
+
+    console.log(`✅ Fetched ${candles.length} ${interval} candles for ${assetInfo.name}`);
+    return candles;
+
+  } catch (error) {
+    console.error(`❌ Error fetching historical candles:`, error);
     return [];
   }
 }

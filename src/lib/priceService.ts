@@ -1,41 +1,40 @@
 /**
- * PRICE SERVICE - CoinGecko API Integration
+ * PRICE SERVICE - Binance API Integration
  *
- * Este servicio maneja toda la comunicación con la API de CoinGecko
+ * Este servicio maneja toda la comunicación con la API de Binance
  * para obtener precios de criptomonedas en tiempo real.
  *
- * CoinGecko Free Tier Limits:
- * - 50 llamadas por minuto
+ * Binance API Public Endpoints:
+ * - Sin límites restrictivos
  * - No requiere API key
- * - Delay recomendado: 1200ms entre llamadas
+ * - Muy confiable y rápida
  */
 
-import type { Asset, CoinGeckoMarketData } from '../types/trading';
+import type { Asset } from '../types/trading';
 
 // ==================== CONFIGURATION ====================
 
-const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
+const BINANCE_API_BASE = 'https://api.binance.com/api/v3';
 
 /**
  * Top cryptocurrencies que vamos a trackear
- * Puedes agregar más IDs de https://api.coingecko.com/api/v3/coins/list
+ * Símbolos de trading pairs en Binance (todos contra USDT)
  */
 export const TRACKED_ASSETS = [
-  'bitcoin',
-  'ethereum',
-  'tether',
-  'binancecoin',
-  'solana',
-  'cardano',
-  'ripple',
-  'polkadot',
-  'dogecoin',
-  'avalanche-2',
-  'polygon',
-  'chainlink',
-  'litecoin',
-  'uniswap',
-  'stellar'
+  { symbol: 'BTCUSDT', id: 'bitcoin', name: 'Bitcoin', displaySymbol: 'BTC' },
+  { symbol: 'ETHUSDT', id: 'ethereum', name: 'Ethereum', displaySymbol: 'ETH' },
+  { symbol: 'BNBUSDT', id: 'binancecoin', name: 'BNB', displaySymbol: 'BNB' },
+  { symbol: 'SOLUSDT', id: 'solana', name: 'Solana', displaySymbol: 'SOL' },
+  { symbol: 'ADAUSDT', id: 'cardano', name: 'Cardano', displaySymbol: 'ADA' },
+  { symbol: 'XRPUSDT', id: 'ripple', name: 'XRP', displaySymbol: 'XRP' },
+  { symbol: 'DOTUSDT', id: 'polkadot', name: 'Polkadot', displaySymbol: 'DOT' },
+  { symbol: 'DOGEUSDT', id: 'dogecoin', name: 'Dogecoin', displaySymbol: 'DOGE' },
+  { symbol: 'AVAXUSDT', id: 'avalanche', name: 'Avalanche', displaySymbol: 'AVAX' },
+  { symbol: 'MATICUSDT', id: 'polygon', name: 'Polygon', displaySymbol: 'MATIC' },
+  { symbol: 'LINKUSDT', id: 'chainlink', name: 'Chainlink', displaySymbol: 'LINK' },
+  { symbol: 'LTCUSDT', id: 'litecoin', name: 'Litecoin', displaySymbol: 'LTC' },
+  { symbol: 'UNIUSDT', id: 'uniswap', name: 'Uniswap', displaySymbol: 'UNI' },
+  { symbol: 'XLMUSDT', id: 'stellar', name: 'Stellar', displaySymbol: 'XLM' }
 ];
 
 // ==================== CACHE ====================
@@ -82,31 +81,44 @@ export async function getMarketPrices(useCache = true): Promise<Asset[]> {
   }
 
   try {
-    console.log('🌐 Fetching fresh prices from CoinGecko...');
+    console.log('🌐 Fetching fresh prices from Binance...');
 
-    const url = `${COINGECKO_API_BASE}/coins/markets?vs_currency=usd&ids=${TRACKED_ASSETS.join(',')}&order=market_cap_desc&sparkline=false&price_change_percentage=24h`;
+    // Obtener datos de 24hr ticker para todos los símbolos
+    const symbols = TRACKED_ASSETS.map(a => `"${a.symbol}"`).join(',');
+    const url = `${BINANCE_API_BASE}/ticker/24hr?symbols=[${symbols}]`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Binance API error: ${response.status} ${response.statusText}`);
     }
 
-    const data: CoinGeckoMarketData[] = await response.json();
+    const data = await response.json();
 
     // Transformar a nuestro formato
-    const assets: Asset[] = data.map(coin => ({
-      id: coin.id,
-      symbol: coin.symbol.toUpperCase(),
-      name: coin.name,
-      current_price: coin.current_price,
-      price_change_percentage_24h: coin.price_change_percentage_24h || 0,
-      image: coin.image,
-      market_cap: coin.market_cap,
-      total_volume: coin.total_volume,
-      high_24h: coin.high_24h,
-      low_24h: coin.low_24h
-    }));
+    const assets: Asset[] = data.map((ticker: any) => {
+      const assetInfo = TRACKED_ASSETS.find(a => a.symbol === ticker.symbol);
+      if (!assetInfo) return null;
+
+      const currentPrice = parseFloat(ticker.lastPrice);
+      const priceChange24h = parseFloat(ticker.priceChangePercent);
+      const high24h = parseFloat(ticker.highPrice);
+      const low24h = parseFloat(ticker.lowPrice);
+      const volume = parseFloat(ticker.volume);
+
+      return {
+        id: assetInfo.id,
+        symbol: assetInfo.displaySymbol,
+        name: assetInfo.name,
+        current_price: currentPrice,
+        price_change_percentage_24h: priceChange24h,
+        image: `https://cryptoicons.org/api/icon/${assetInfo.displaySymbol.toLowerCase()}/200`,
+        market_cap: currentPrice * volume * 365, // Estimación simple
+        total_volume: volume * currentPrice,
+        high_24h: high24h,
+        low_24h: low24h
+      };
+    }).filter(Boolean) as Asset[];
 
     // Actualizar cache
     priceCache = {
@@ -114,7 +126,7 @@ export async function getMarketPrices(useCache = true): Promise<Asset[]> {
       timestamp: Date.now()
     };
 
-    console.log(`✅ Fetched ${assets.length} assets from CoinGecko`);
+    console.log(`✅ Fetched ${assets.length} assets from Binance`);
     return assets;
 
   } catch (error) {
@@ -127,7 +139,6 @@ export async function getMarketPrices(useCache = true): Promise<Asset[]> {
     }
 
     // Si no hay cache, retornar array vacío
-    // En producción podrías mostrar un error al usuario
     return [];
   }
 }
@@ -140,16 +151,19 @@ export async function getMarketPrices(useCache = true): Promise<Asset[]> {
  */
 export async function getAssetPrice(assetId: string): Promise<number | null> {
   try {
-    const url = `${COINGECKO_API_BASE}/simple/price?ids=${assetId}&vs_currencies=usd`;
+    const assetInfo = TRACKED_ASSETS.find(a => a.id === assetId);
+    if (!assetInfo) return null;
+
+    const url = `${BINANCE_API_BASE}/ticker/price?symbol=${assetInfo.symbol}`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`CoinGecko API error: ${response.status}`);
+      throw new Error(`Binance API error: ${response.status}`);
     }
 
     const data = await response.json();
-    return data[assetId]?.usd || null;
+    return parseFloat(data.price) || null;
 
   } catch (error) {
     console.error(`❌ Error fetching price for ${assetId}:`, error);

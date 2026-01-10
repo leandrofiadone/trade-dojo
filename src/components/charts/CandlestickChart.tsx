@@ -83,7 +83,14 @@ export function CandlestickChart({
 
   // Create chart once on mount
   useEffect(() => {
+    console.log('🔄 Chart creation useEffect triggered', {
+      hasRef: !!chartContainerRef.current,
+      refElement: chartContainerRef.current,
+      isFullscreen
+    });
+
     if (!chartContainerRef.current) {
+      console.log('❌ Chart container ref is null, cannot create chart');
       return;
     }
 
@@ -161,7 +168,7 @@ export function CandlestickChart({
         candlestickSeriesRef.current = null;
       }
     };
-  }, [isFullscreen]);
+  }, [isFullscreen, data.length > 0]);
 
   // Update data when it changes
   useEffect(() => {
@@ -401,7 +408,7 @@ export function CandlestickChart({
 
       {/* Chart */}
       <div className="px-6 relative">
-        <div ref={chartContainerRef} className="w-full" />
+        <div ref={chartContainerRef} className="w-full" style={{ height: '400px' }} />
         {isLoading && (
           <div className="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center">
             <div className="flex items-center space-x-2">

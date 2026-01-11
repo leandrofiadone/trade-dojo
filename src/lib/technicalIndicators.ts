@@ -512,6 +512,597 @@ export function detectCandlePatterns(candleData: CandlestickData[]): {
   };
 }
 
+// ==================== BOLLINGER BANDS ====================
+
+/**
+ * Calcula las Bandas de Bollinger
+ *
+ * Bandas de Bollinger miden la volatilidad y niveles de sobrecompra/sobreventa
+ * - Precio toca banda superior: Posible sobrecompra
+ * - Precio toca banda inferior: Posible sobreventa
+ * - Bandas se estrechan: Baja volatilidad (posible breakout próximo)
+ * - Bandas se ensanchan: Alta volatilidad
+ */
+export function calculateBollingerBands(prices: number[], period: number = 20, stdDev: number = 2): {
+  upper: number;
+  middle: number;
+  lower: number;
+  bandwidth: number;
+  percentB: number; // %B: posición del precio dentro de las bandas (0-1)
+} {
+  if (prices.length < period) {
+    const currentPrice = prices[prices.length - 1] || 0;
+    return {
+      upper: currentPrice,
+      middle: currentPrice,
+      lower: currentPrice,
+      bandwidth: 0,
+      percentB: 0.5
+    };
+  }
+
+  // Calcular SMA (banda media)
+  const recentPrices = prices.slice(-period);
+  const middle = recentPrices.reduce((sum, p) => sum + p, 0) / period;
+
+  // Calcular desviación estándar
+  const squaredDiffs = recentPrices.map(p => Math.pow(p - middle, 2));
+  const variance = squaredDiffs.reduce((sum, d) => sum + d, 0) / period;
+  const standardDeviation = Math.sqrt(variance);
+
+  // Calcular bandas
+  const upper = middle + (standardDeviation * stdDev);
+  const lower = middle - (standardDeviation * stdDev);
+
+  // Bandwidth: qué tan anchas están las bandas
+  const bandwidth = ((upper - lower) / middle) * 100;
+
+  // %B: posición del precio dentro de las bandas
+  const currentPrice = prices[prices.length - 1];
+  const percentB = (upper - lower) !== 0
+    ? (currentPrice - lower) / (upper - lower)
+    : 0.5;
+
+  return { upper, middle, lower, bandwidth, percentB };
+}
+
+// ==================== STOCHASTIC OSCILLATOR ====================
+
+/**
+ * Calcula el Oscilador Estocástico
+ *
+ * Stochastic mide el momentum comparando el precio de cierre con el rango de precios
+ * - %K > 80: Sobrecompra
+ * - %K < 20: Sobreventa
+ * - %K cruza %D al alza: Señal de compra
+ * - %K cruza %D a la baja: Señal de venta
+ */
+export function calculateStochastic(candleData: CandlestickData[], kPeriod: number = 14, dPeriod: number = 3): {
+  k: number; // %K: Línea rápida
+  d: number; // %D: Línea de señal (SMA de %K)
+  signal: 'overbought' | 'oversold' | 'neutral';
+} {
+  if (candleData.length < kPeriod) {
+    return { k: 50, d: 50, signal: 'neutral' };
+  }
+
+  // Calcular %K
+  const recentCandles = candleData.slice(-kPeriod);
+  const highs = recentCandles.map(c => c.high);
+  const lows = recentCandles.map(c => c.low);
+  const currentClose = recentCandles[recentCandles.length - 1].close;
+
+  const highestHigh = Math.max(...highs);
+  const lowestLow = Math.min(...lows);
+
+  const k = (highestHigh - lowestLow) !== 0
+    ? ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100
+    : 50;
+
+  // Calcular %D (SMA de %K para los últimos dPeriod períodos)
+  // Para simplificar, calculamos %K para cada una de las últimas dPeriod velas
+  const kValues: number[] = [];
+  for (let i = 0; i < Math.min(dPeriod, candleData.length - kPeriod + 1); i++) {
+    const slice = candleData.slice(-(kPeriod + dPeriod - i), candleData.length - i);
+    if (slice.length >= kPeriod) {
+      const sliceHighs = slice.slice(-kPeriod).map(c => c.high);
+      const sliceLows = slice.slice(-kPeriod).map(c => c.low);
+      const sliceClose = slice[slice.length - 1].close;
+      const sliceHH = Math.max(...sliceHighs);
+      const sliceLL = Math.min(...sliceLows);
+      const sliceK = (sliceHH - sliceLL) !== 0
+        ? ((sliceClose - sliceLL) / (sliceHH - sliceLL)) * 100
+        : 50;
+      kValues.push(sliceK);
+    }
+  }
+
+  const d = kValues.length > 0
+    ? kValues.reduce((sum, v) => sum + v, 0) / kValues.length
+    : k;
+
+  // Determinar señal
+  let signal: 'overbought' | 'oversold' | 'neutral';
+  if (k > 80) {
+    signal = 'overbought';
+  } else if (k < 20) {
+    signal = 'oversold';
+  } else {
+    signal = 'neutral';
+  }
+
+  return { k, d, signal };
+}
+
+// ==================== CCI (Commodity Channel Index) ====================
+
+/**
+ * Calcula el CCI (Commodity Channel Index)
+ *
+ * CCI mide la desviación del precio respecto a su promedio
+ * - CCI > +100: Sobrecompra
+ * - CCI < -100: Sobreventa
+ * - CCI cruzando 0: Cambio de tendencia
+ */
+export function calculateCCI(candleData: CandlestickData[], period: number = 20): {
+  cci: number;
+  signal: 'overbought' | 'oversold' | 'bullish' | 'bearish' | 'neutral';
+} {
+  if (candleData.length < period) {
+    return { cci: 0, signal: 'neutral' };
+  }
+
+  const recentCandles = candleData.slice(-period);
+
+  // Calcular Typical Price (TP) = (High + Low + Close) / 3
+  const typicalPrices = recentCandles.map(c => (c.high + c.low + c.close) / 3);
+
+  // Calcular SMA de TP
+  const sma = typicalPrices.reduce((sum, tp) => sum + tp, 0) / period;
+
+  // Calcular Mean Deviation
+  const meanDeviation = typicalPrices.reduce((sum, tp) => sum + Math.abs(tp - sma), 0) / period;
+
+  // CCI = (Typical Price - SMA) / (0.015 * Mean Deviation)
+  const currentTP = typicalPrices[typicalPrices.length - 1];
+  const cci = meanDeviation !== 0 ? (currentTP - sma) / (0.015 * meanDeviation) : 0;
+
+  // Determinar señal
+  let signal: 'overbought' | 'oversold' | 'bullish' | 'bearish' | 'neutral';
+  if (cci > 100) {
+    signal = 'overbought';
+  } else if (cci < -100) {
+    signal = 'oversold';
+  } else if (cci > 0) {
+    signal = 'bullish';
+  } else if (cci < 0) {
+    signal = 'bearish';
+  } else {
+    signal = 'neutral';
+  }
+
+  return { cci, signal };
+}
+
+// ==================== WILLIAMS %R ====================
+
+/**
+ * Calcula Williams %R
+ *
+ * Williams %R mide nivel de sobrecompra/sobreventa
+ * - %R > -20: Sobrecompra (valores van de 0 a -100)
+ * - %R < -80: Sobreventa
+ */
+export function calculateWilliamsR(candleData: CandlestickData[], period: number = 14): {
+  williamsR: number;
+  signal: 'overbought' | 'oversold' | 'neutral';
+} {
+  if (candleData.length < period) {
+    return { williamsR: -50, signal: 'neutral' };
+  }
+
+  const recentCandles = candleData.slice(-period);
+  const highs = recentCandles.map(c => c.high);
+  const lows = recentCandles.map(c => c.low);
+  const currentClose = recentCandles[recentCandles.length - 1].close;
+
+  const highestHigh = Math.max(...highs);
+  const lowestLow = Math.min(...lows);
+
+  const williamsR = (highestHigh - lowestLow) !== 0
+    ? ((highestHigh - currentClose) / (highestHigh - lowestLow)) * -100
+    : -50;
+
+  let signal: 'overbought' | 'oversold' | 'neutral';
+  if (williamsR > -20) {
+    signal = 'overbought';
+  } else if (williamsR < -80) {
+    signal = 'oversold';
+  } else {
+    signal = 'neutral';
+  }
+
+  return { williamsR, signal };
+}
+
+// ==================== ROC (Rate of Change) ====================
+
+/**
+ * Calcula ROC (Rate of Change)
+ *
+ * ROC mide el cambio porcentual del precio en un período
+ * - ROC > 0: Momentum alcista
+ * - ROC < 0: Momentum bajista
+ */
+export function calculateROC(prices: number[], period: number = 12): {
+  roc: number;
+  signal: 'strong-bullish' | 'bullish' | 'neutral' | 'bearish' | 'strong-bearish';
+} {
+  if (prices.length < period + 1) {
+    return { roc: 0, signal: 'neutral' };
+  }
+
+  const currentPrice = prices[prices.length - 1];
+  const priceNPeriodsAgo = prices[prices.length - period - 1];
+
+  const roc = ((currentPrice - priceNPeriodsAgo) / priceNPeriodsAgo) * 100;
+
+  let signal: 'strong-bullish' | 'bullish' | 'neutral' | 'bearish' | 'strong-bearish';
+  if (roc > 5) {
+    signal = 'strong-bullish';
+  } else if (roc > 1) {
+    signal = 'bullish';
+  } else if (roc < -5) {
+    signal = 'strong-bearish';
+  } else if (roc < -1) {
+    signal = 'bearish';
+  } else {
+    signal = 'neutral';
+  }
+
+  return { roc, signal };
+}
+
+// ==================== MFI (Money Flow Index) ====================
+
+/**
+ * Calcula MFI (Money Flow Index)
+ *
+ * MFI es como RSI pero incorpora volumen
+ * - MFI > 80: Sobrecompra
+ * - MFI < 20: Sobreventa
+ */
+export function calculateMFI(candleData: CandlestickData[], period: number = 14): {
+  mfi: number;
+  signal: 'overbought' | 'oversold' | 'neutral';
+} {
+  if (candleData.length < period + 1) {
+    return { mfi: 50, signal: 'neutral' };
+  }
+
+  const recentCandles = candleData.slice(-(period + 1));
+
+  // Calcular Typical Price y Money Flow
+  let positiveMoneyFlow = 0;
+  let negativeMoneyFlow = 0;
+
+  for (let i = 1; i < recentCandles.length; i++) {
+    const typicalPrice = (recentCandles[i].high + recentCandles[i].low + recentCandles[i].close) / 3;
+    const prevTypicalPrice = (recentCandles[i-1].high + recentCandles[i-1].low + recentCandles[i-1].close) / 3;
+    const moneyFlow = typicalPrice * (recentCandles[i].volume || 0);
+
+    if (typicalPrice > prevTypicalPrice) {
+      positiveMoneyFlow += moneyFlow;
+    } else if (typicalPrice < prevTypicalPrice) {
+      negativeMoneyFlow += moneyFlow;
+    }
+  }
+
+  const moneyFlowRatio = negativeMoneyFlow !== 0 ? positiveMoneyFlow / negativeMoneyFlow : 100;
+  const mfi = 100 - (100 / (1 + moneyFlowRatio));
+
+  let signal: 'overbought' | 'oversold' | 'neutral';
+  if (mfi > 80) {
+    signal = 'overbought';
+  } else if (mfi < 20) {
+    signal = 'oversold';
+  } else {
+    signal = 'neutral';
+  }
+
+  return { mfi, signal };
+}
+
+// ==================== PARABOLIC SAR ====================
+
+/**
+ * Calcula Parabolic SAR (Stop and Reverse)
+ *
+ * SAR indica puntos de reversión potenciales
+ * - Precio > SAR: Tendencia alcista
+ * - Precio < SAR: Tendencia bajista
+ */
+export function calculateParabolicSAR(
+  candleData: CandlestickData[],
+  step: number = 0.02,
+  max: number = 0.2
+): {
+  sar: number;
+  trend: 'bullish' | 'bearish';
+  signal: 'buy' | 'sell' | 'hold';
+} {
+  if (candleData.length < 5) {
+    const currentPrice = candleData[candleData.length - 1]?.close || 0;
+    return { sar: currentPrice, trend: 'bullish', signal: 'hold' };
+  }
+
+  // Simplificado: usar los últimos 5 períodos para determinar tendencia inicial
+  const recent = candleData.slice(-5);
+  const currentPrice = recent[recent.length - 1].close;
+  const avgHigh = recent.reduce((sum, c) => sum + c.high, 0) / recent.length;
+  const avgLow = recent.reduce((sum, c) => sum + c.low, 0) / recent.length;
+
+  // Determinar tendencia actual
+  const isBullish = currentPrice > (avgHigh + avgLow) / 2;
+
+  // SAR simplificado: usar 2% por debajo/encima del precio para stops
+  const sar = isBullish
+    ? Math.min(...recent.map(c => c.low)) * 0.98
+    : Math.max(...recent.map(c => c.high)) * 1.02;
+
+  // Detectar reversión
+  let signal: 'buy' | 'sell' | 'hold' = 'hold';
+  if (isBullish && currentPrice < sar) {
+    signal = 'sell';
+  } else if (!isBullish && currentPrice > sar) {
+    signal = 'buy';
+  }
+
+  return {
+    sar,
+    trend: isBullish ? 'bullish' : 'bearish',
+    signal
+  };
+}
+
+// ==================== OBV (On Balance Volume) ====================
+
+/**
+ * Calcula OBV (On Balance Volume)
+ *
+ * OBV mide presión de compra/venta mediante volumen
+ * - OBV subiendo: Acumulación
+ * - OBV bajando: Distribución
+ */
+export function calculateOBV(candleData: CandlestickData[]): {
+  obv: number;
+  trend: 'accumulation' | 'distribution' | 'neutral';
+  signal: 'bullish' | 'bearish' | 'neutral';
+} {
+  if (candleData.length < 2) {
+    return { obv: 0, trend: 'neutral', signal: 'neutral' };
+  }
+
+  let obv = 0;
+  for (let i = 1; i < candleData.length; i++) {
+    const volume = candleData[i].volume || 0;
+    if (candleData[i].close > candleData[i - 1].close) {
+      obv += volume;
+    } else if (candleData[i].close < candleData[i - 1].close) {
+      obv -= volume;
+    }
+  }
+
+  // Analizar últimas 10 velas para determinar tendencia
+  const recent = Math.min(10, candleData.length - 1);
+  let obvRecent = 0;
+  for (let i = candleData.length - recent; i < candleData.length; i++) {
+    const volume = candleData[i].volume || 0;
+    if (candleData[i].close > candleData[i - 1].close) {
+      obvRecent += volume;
+    } else if (candleData[i].close < candleData[i - 1].close) {
+      obvRecent -= volume;
+    }
+  }
+
+  const trend = obvRecent > 0 ? 'accumulation' : obvRecent < 0 ? 'distribution' : 'neutral';
+  const signal = obvRecent > 0 ? 'bullish' : obvRecent < 0 ? 'bearish' : 'neutral';
+
+  return { obv, trend, signal };
+}
+
+// ==================== VWAP (Volume Weighted Average Price) ====================
+
+/**
+ * Calcula VWAP (Volume Weighted Average Price)
+ *
+ * VWAP es el precio promedio ponderado por volumen
+ * - Precio > VWAP: Alcista
+ * - Precio < VWAP: Bajista
+ */
+export function calculateVWAP(candleData: CandlestickData[]): {
+  vwap: number;
+  signal: 'bullish' | 'bearish' | 'neutral';
+} {
+  if (candleData.length === 0) {
+    return { vwap: 0, signal: 'neutral' };
+  }
+
+  let cumulativeTPV = 0; // Typical Price * Volume
+  let cumulativeVolume = 0;
+
+  for (const candle of candleData) {
+    const typicalPrice = (candle.high + candle.low + candle.close) / 3;
+    const volume = candle.volume || 0;
+    cumulativeTPV += typicalPrice * volume;
+    cumulativeVolume += volume;
+  }
+
+  const vwap = cumulativeVolume !== 0 ? cumulativeTPV / cumulativeVolume : 0;
+  const currentPrice = candleData[candleData.length - 1].close;
+
+  const signal = currentPrice > vwap ? 'bullish' : currentPrice < vwap ? 'bearish' : 'neutral';
+
+  return { vwap, signal };
+}
+
+// ==================== SUPERTREND ====================
+
+/**
+ * Calcula Supertrend Indicator
+ *
+ * Supertrend es un indicador de seguimiento de tendencia
+ * - Verde (bullish): Comprar/mantener
+ * - Rojo (bearish): Vender/evitar
+ */
+export function calculateSupertrend(
+  candleData: CandlestickData[],
+  period: number = 10,
+  multiplier: number = 3
+): {
+  supertrend: number;
+  trend: 'bullish' | 'bearish';
+  signal: 'buy' | 'sell' | 'hold';
+} {
+  if (candleData.length < period) {
+    const currentPrice = candleData[candleData.length - 1]?.close || 0;
+    return { supertrend: currentPrice, trend: 'bullish', signal: 'hold' };
+  }
+
+  const atr = calculateATR(candleData, period);
+  const currentCandle = candleData[candleData.length - 1];
+  const hl2 = (currentCandle.high + currentCandle.low) / 2;
+
+  // Basic Band
+  const basicUpperBand = hl2 + (multiplier * atr);
+  const basicLowerBand = hl2 - (multiplier * atr);
+
+  // Determinar tendencia basada en precio vs bandas
+  const currentPrice = currentCandle.close;
+  const isBullish = currentPrice > basicLowerBand;
+
+  const supertrend = isBullish ? basicLowerBand : basicUpperBand;
+
+  // Detectar cambio de tendencia
+  let signal: 'buy' | 'sell' | 'hold' = 'hold';
+  if (candleData.length >= 2) {
+    const prevPrice = candleData[candleData.length - 2].close;
+    const prevHL2 = (candleData[candleData.length - 2].high + candleData[candleData.length - 2].low) / 2;
+    const prevLowerBand = prevHL2 - (multiplier * atr);
+    const prevUpperBand = prevHL2 + (multiplier * atr);
+    const wasBullish = prevPrice > prevLowerBand;
+
+    if (isBullish && !wasBullish) {
+      signal = 'buy';
+    } else if (!isBullish && wasBullish) {
+      signal = 'sell';
+    }
+  }
+
+  return {
+    supertrend,
+    trend: isBullish ? 'bullish' : 'bearish',
+    signal
+  };
+}
+
+// ==================== MARKET STRUCTURE ====================
+
+/**
+ * Analiza la estructura del mercado (Higher Highs, Lower Lows)
+ *
+ * Identifica si el mercado está haciendo HH/HL (alcista) o LH/LL (bajista)
+ */
+export function analyzeMarketStructure(candleData: CandlestickData[], lookback: number = 20): {
+  structure: 'uptrend' | 'downtrend' | 'ranging' | 'consolidation';
+  higherHighs: number;
+  lowerLows: number;
+  swingHighs: number[];
+  swingLows: number[];
+  signal: 'bullish' | 'bearish' | 'neutral';
+} {
+  if (candleData.length < lookback) {
+    return {
+      structure: 'ranging',
+      higherHighs: 0,
+      lowerLows: 0,
+      swingHighs: [],
+      swingLows: [],
+      signal: 'neutral'
+    };
+  }
+
+  const recent = candleData.slice(-lookback);
+  const swingHighs: number[] = [];
+  const swingLows: number[] = [];
+
+  // Identificar swing highs y lows (simplificado)
+  for (let i = 2; i < recent.length - 2; i++) {
+    // Swing High: high[i] > high[i-1] && high[i] > high[i-2] && high[i] > high[i+1] && high[i] > high[i+2]
+    if (
+      recent[i].high > recent[i - 1].high &&
+      recent[i].high > recent[i - 2].high &&
+      recent[i].high > recent[i + 1].high &&
+      recent[i].high > recent[i + 2].high
+    ) {
+      swingHighs.push(recent[i].high);
+    }
+
+    // Swing Low
+    if (
+      recent[i].low < recent[i - 1].low &&
+      recent[i].low < recent[i - 2].low &&
+      recent[i].low < recent[i + 1].low &&
+      recent[i].low < recent[i + 2].low
+    ) {
+      swingLows.push(recent[i].low);
+    }
+  }
+
+  // Contar Higher Highs y Lower Lows
+  let higherHighs = 0;
+  for (let i = 1; i < swingHighs.length; i++) {
+    if (swingHighs[i] > swingHighs[i - 1]) higherHighs++;
+  }
+
+  let lowerLows = 0;
+  for (let i = 1; i < swingLows.length; i++) {
+    if (swingLows[i] < swingLows[i - 1]) lowerLows++;
+  }
+
+  // Determinar estructura
+  let structure: 'uptrend' | 'downtrend' | 'ranging' | 'consolidation';
+  let signal: 'bullish' | 'bearish' | 'neutral';
+
+  if (higherHighs >= 2 && lowerLows === 0) {
+    structure = 'uptrend';
+    signal = 'bullish';
+  } else if (lowerLows >= 2 && higherHighs === 0) {
+    structure = 'downtrend';
+    signal = 'bearish';
+  } else if (swingHighs.length > 0 && swingLows.length > 0) {
+    const highRange = Math.max(...swingHighs) - Math.min(...swingHighs);
+    const lowRange = Math.max(...swingLows) - Math.min(...swingLows);
+    const avgPrice = recent.reduce((sum, c) => sum + c.close, 0) / recent.length;
+    const volatility = ((highRange + lowRange) / 2) / avgPrice;
+
+    structure = volatility < 0.02 ? 'consolidation' : 'ranging';
+    signal = 'neutral';
+  } else {
+    structure = 'ranging';
+    signal = 'neutral';
+  }
+
+  return {
+    structure,
+    higherHighs,
+    lowerLows,
+    swingHighs,
+    swingLows,
+    signal
+  };
+}
+
 // ==================== MARKET SENTIMENT ====================
 
 export type SentimentLevel = 'extreme-fear' | 'fear' | 'neutral' | 'greed' | 'extreme-greed';

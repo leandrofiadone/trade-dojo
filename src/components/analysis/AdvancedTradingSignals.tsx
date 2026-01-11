@@ -42,6 +42,9 @@ export function AdvancedTradingSignals({
     insights: true
   });
 
+  // Estado para las tabs internas
+  const [activeTab, setActiveTab] = useState<'summary' | 'indicators' | 'levels'>('summary');
+
   const signals = generateAdvancedTradingSignals(candleData, volumeData);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -119,88 +122,127 @@ export function AdvancedTradingSignals({
 
   return (
     <Card className="overflow-hidden">
-      <div className="p-4 sm:p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
-              <Activity className="w-7 h-7 text-blue-600" />
-              <span>Análisis Técnico Avanzado</span>
-            </h2>
-            {assetName && (
-              <p className="text-sm text-gray-600 mt-1">{assetName}</p>
-            )}
-          </div>
+      <div className="p-2">
+        {/* Header Compacto */}
+        <div className="mb-1.5">
+          <h2 className="text-xs font-bold text-gray-900 flex items-center space-x-1">
+            <Activity className="w-3.5 h-3.5 text-blue-600" />
+            <span>Análisis Técnico</span>
+          </h2>
+          {assetName && (
+            <p className="text-[9px] text-gray-600 mt-0.5">{assetName}</p>
+          )}
         </div>
 
-        {/* Señal Principal - MUY DESTACADA */}
+        {/* Tabs Internas */}
+        <div className="mb-1.5">
+          <nav className="flex space-x-1 bg-gray-50 p-0.5 rounded-lg">
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`
+                flex-1 py-1 px-1.5 rounded-md text-[9px] font-semibold transition-all duration-150
+                ${activeTab === 'summary'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-white'
+                }
+              `}
+            >
+              📊 Resumen
+            </button>
+            <button
+              onClick={() => setActiveTab('indicators')}
+              className={`
+                flex-1 py-1 px-1.5 rounded-md text-[9px] font-semibold transition-all duration-150
+                ${activeTab === 'indicators'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-white'
+                }
+              `}
+            >
+              📈 Indicadores
+            </button>
+            <button
+              onClick={() => setActiveTab('levels')}
+              className={`
+                flex-1 py-1 px-1.5 rounded-md text-[9px] font-semibold transition-all duration-150
+                ${activeTab === 'levels'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-white'
+                }
+              `}
+            >
+              🎯 Niveles
+            </button>
+          </nav>
+        </div>
+
+        {/* Contenido según tab */}
+        {activeTab === 'summary' && (
+          <>
+        {/* Señal Principal - Compacta */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className={`p-6 rounded-xl border-3 ${config.bgColor} ${config.borderColor} mb-6 shadow-lg`}
+          transition={{ duration: 0.2 }}
+          className={`p-2 rounded-lg border-2 ${config.bgColor} ${config.borderColor} mb-1.5 shadow-sm`}
         >
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center space-x-4">
-              {config.icon}
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center space-x-1.5">
+              <div className="w-4 h-4">{config.icon}</div>
               <div>
-                <p className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Señal General</p>
-                <p className={`text-3xl font-black ${config.color} mt-1`}>
+                <p className="text-[9px] text-gray-600 font-medium uppercase">Señal</p>
+                <p className={`text-[10px] font-bold ${config.color}`}>
                   {config.emoji} {config.label}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-600 font-semibold uppercase">Confianza</p>
-              <p className={`text-4xl font-black ${config.color}`}>
+              <p className="text-[9px] text-gray-600">Conf.</p>
+              <p className={`text-base font-black ${config.color}`}>
                 {signals.confidence}%
               </p>
             </div>
           </div>
 
-          <div className={`p-4 rounded-lg ${config.color} bg-white/50 border ${config.borderColor}`}>
-            <p className="text-sm font-semibold leading-relaxed">
+          <div className={`p-1.5 rounded ${config.color} bg-white/50 border ${config.borderColor}`}>
+            <p className="text-[9px] font-medium leading-snug">
               {signals.recommendation}
             </p>
           </div>
         </motion.div>
 
-        {/* Análisis de Tendencia Multi-Timeframe */}
-        <div className="mb-6 p-5 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="text-lg font-bold text-blue-900 mb-3 flex items-center space-x-2">
-            <BarChart3 className="w-5 h-5" />
-            <span>Análisis de Tendencia (Multi-Timeframe)</span>
+        {/* Tendencia - Compacta */}
+        <div className="mb-1.5 p-1.5 bg-blue-50 rounded border border-blue-200">
+          <h3 className="text-[9px] font-bold text-blue-900 mb-1 flex items-center space-x-1">
+            <BarChart3 className="w-2.5 h-2.5" />
+            <span>Tendencia</span>
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="bg-white p-3 rounded border border-blue-200">
-              <p className="text-xs text-gray-600 font-medium">Corto Plazo (20 velas)</p>
-              <p className="text-sm font-bold text-gray-900">{signals.trendAnalysis.shortTerm}</p>
+          <div className="grid grid-cols-2 gap-1">
+            <div className="bg-white p-1 rounded text-center">
+              <p className="text-[8px] text-gray-600">Corto</p>
+              <p className="text-[9px] font-bold text-gray-900">{signals.trendAnalysis.shortTerm}</p>
             </div>
-            <div className="bg-white p-3 rounded border border-blue-200">
-              <p className="text-xs text-gray-600 font-medium">Mediano Plazo (50 velas)</p>
-              <p className="text-sm font-bold text-gray-900">{signals.trendAnalysis.mediumTerm}</p>
+            <div className="bg-white p-1 rounded text-center">
+              <p className="text-[8px] text-gray-600">Medio</p>
+              <p className="text-[9px] font-bold text-gray-900">{signals.trendAnalysis.mediumTerm}</p>
             </div>
-            <div className="bg-white p-3 rounded border border-blue-200">
-              <p className="text-xs text-gray-600 font-medium">Largo Plazo (200 velas)</p>
-              <p className="text-sm font-bold text-gray-900">{signals.trendAnalysis.longTerm}</p>
-            </div>
-            <div className="bg-white p-3 rounded border border-blue-200">
-              <p className="text-xs text-gray-600 font-medium">Tendencia General</p>
-              <p className="text-sm font-bold text-blue-700">{signals.trendAnalysis.overall}</p>
-            </div>
+          </div>
+          <div className="bg-white p-1 rounded mt-1 text-center">
+            <p className="text-[8px] text-gray-600">General</p>
+            <p className="text-[9px] font-bold text-blue-700">{signals.trendAnalysis.overall}</p>
           </div>
         </div>
 
-        {/* Volatilidad */}
-        <div className="mb-6 p-5 bg-purple-50 rounded-lg border border-purple-200">
-          <h3 className="text-lg font-bold text-purple-900 mb-2 flex items-center space-x-2">
-            <Activity className="w-5 h-5" />
-            <span>Análisis de Volatilidad</span>
+        {/* Volatilidad - Compacta */}
+        <div className="mb-1.5 p-1.5 bg-purple-50 rounded border border-purple-200">
+          <h3 className="text-[9px] font-bold text-purple-900 mb-1 flex items-center space-x-1">
+            <Activity className="w-2.5 h-2.5" />
+            <span>Volatilidad</span>
           </h3>
-          <div className="bg-white p-4 rounded border border-purple-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-gray-700">Nivel:</span>
-              <span className={`text-sm font-bold px-3 py-1 rounded ${
+          <div className="bg-white p-1.5 rounded">
+            <div className="flex items-center justify-between">
+              <span className="text-[8px] font-medium text-gray-700">Nivel:</span>
+              <span className={`text-[8px] font-bold px-1 py-0.5 rounded ${
                 signals.volatilityAnalysis.level === 'very-high' ? 'bg-red-100 text-red-700' :
                 signals.volatilityAnalysis.level === 'high' ? 'bg-orange-100 text-orange-700' :
                 signals.volatilityAnalysis.level === 'normal' ? 'bg-green-100 text-green-700' :
@@ -209,39 +251,39 @@ export function AdvancedTradingSignals({
                 {signals.volatilityAnalysis.level.toUpperCase().replace('-', ' ')}
               </span>
             </div>
-            <p className="text-xs text-gray-600 mb-2">ATR: {signals.volatilityAnalysis.atr.toFixed(2)}</p>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              {signals.volatilityAnalysis.description}
-            </p>
           </div>
         </div>
 
-        {/* Patrón de Velas */}
+        {/* Patrón de Velas - Compacto */}
         {signals.priceAction.pattern !== 'none' && (
-          <div className="mb-6 p-5 bg-amber-50 rounded-lg border border-amber-200">
-            <h3 className="text-lg font-bold text-amber-900 mb-2">🕯️ Patrón de Velas Detectado</h3>
-            <div className="bg-white p-4 rounded border border-amber-200">
-              <p className="text-sm font-bold text-gray-900 mb-2">
+          <div className="mb-1.5 p-1.5 bg-amber-50 rounded border border-amber-200">
+            <h3 className="text-[9px] font-bold text-amber-900 mb-0.5">🕯️ Patrón</h3>
+            <div className="bg-white p-1 rounded">
+              <p className="text-[8px] font-bold text-gray-900">
                 {signals.priceAction.pattern.toUpperCase().replace(/-/g, ' ')}
                 {signals.priceAction.patternSignal === 'bullish' && ' 🟢'}
                 {signals.priceAction.patternSignal === 'bearish' && ' 🔴'}
               </p>
-              <p className="text-sm text-gray-700">{signals.priceAction.patternExplanation}</p>
             </div>
           </div>
         )}
+          </>
+        )}
 
-        {/* Niveles Clave de Trading - COLAPSABLE */}
-        <div className="mb-6">
+        {/* Tab: Niveles */}
+        {activeTab === 'levels' && (
+          <>
+        {/* Niveles Clave - COLAPSABLE */}
+        <div className="mb-1.5">
           <button
             onClick={() => toggleSection('levels')}
-            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 hover:from-green-100 hover:to-emerald-100 transition-colors"
+            className="w-full flex items-center justify-between p-1.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded border border-green-200 hover:from-green-100 hover:to-emerald-100 transition-colors"
           >
-            <h3 className="text-lg font-bold text-green-900 flex items-center space-x-2">
-              <Target className="w-5 h-5" />
-              <span>💰 Niveles Clave de Trading (Entry/SL/TP)</span>
+            <h3 className="text-[9px] font-bold text-green-900 flex items-center space-x-1">
+              <Target className="w-2.5 h-2.5" />
+              <span>💰 Niveles Entry/SL/TP</span>
             </h3>
-            {expandedSections.levels ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            {expandedSections.levels ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
           </button>
 
           <AnimatePresence>
@@ -250,63 +292,34 @@ export function AdvancedTradingSignals({
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="mt-3 p-5 bg-white rounded-lg border border-green-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-xs text-gray-600 font-medium mb-1">🎯 ENTRADA</p>
-                      <p className="text-2xl font-bold text-blue-700">${signals.keyLevels.entry.toFixed(2)}</p>
-                    </div>
-
-                    <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                      <p className="text-xs text-gray-600 font-medium mb-1">🛑 STOP LOSS</p>
-                      <p className="text-2xl font-bold text-red-700">${signals.keyLevels.stopLoss.toFixed(2)}</p>
-                      <p className="text-xs text-red-600 mt-1">
-                        -{Math.abs(((signals.keyLevels.stopLoss - signals.keyLevels.entry) / signals.keyLevels.entry) * 100).toFixed(2)}%
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                      <p className="text-xs text-gray-600 font-medium mb-1">✅ TAKE PROFIT 1</p>
-                      <p className="text-2xl font-bold text-green-700">${signals.keyLevels.takeProfit1.toFixed(2)}</p>
-                      <p className="text-xs text-green-600 mt-1">
-                        +{Math.abs(((signals.keyLevels.takeProfit1 - signals.keyLevels.entry) / signals.keyLevels.entry) * 100).toFixed(2)}%
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                      <p className="text-xs text-gray-600 font-medium mb-1">✅ TAKE PROFIT 2</p>
-                      <p className="text-2xl font-bold text-green-700">${signals.keyLevels.takeProfit2.toFixed(2)}</p>
-                      <p className="text-xs text-green-600 mt-1">
-                        +{Math.abs(((signals.keyLevels.takeProfit2 - signals.keyLevels.entry) / signals.keyLevels.entry) * 100).toFixed(2)}%
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                      <p className="text-xs text-gray-600 font-medium mb-1">✅ TAKE PROFIT 3</p>
-                      <p className="text-2xl font-bold text-green-700">${signals.keyLevels.takeProfit3.toFixed(2)}</p>
-                      <p className="text-xs text-green-600 mt-1">
-                        +{Math.abs(((signals.keyLevels.takeProfit3 - signals.keyLevels.entry) / signals.keyLevels.entry) * 100).toFixed(2)}%
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                      <p className="text-xs text-gray-600 font-medium mb-1">⚖️ RISK:REWARD</p>
-                      <p className="text-2xl font-bold text-purple-700">1:{signals.keyLevels.riskRewardRatio.toFixed(2)}</p>
-                      <p className="text-xs text-purple-600 mt-1">
-                        {signals.keyLevels.riskRewardRatio >= 2 ? 'Excelente ✅' : signals.keyLevels.riskRewardRatio >= 1.5 ? 'Bueno 👍' : 'Mejorable ⚠️'}
-                      </p>
-                    </div>
+                <div className="mt-1 p-1.5 bg-white rounded border border-green-200 space-y-1">
+                  <div className="p-1 bg-blue-50 rounded border border-blue-200">
+                    <p className="text-[8px] text-gray-600 font-medium">🎯 ENTRADA</p>
+                    <p className="text-xs font-bold text-blue-700">${signals.keyLevels.entry.toFixed(2)}</p>
                   </div>
 
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-xs text-gray-600 font-medium mb-2">Soporte/Resistencia Más Cercanos:</p>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-red-700 font-semibold">⬇️ Soporte: ${signals.keyLevels.nearest.support.toFixed(2)}</span>
-                      <span className="text-green-700 font-semibold">⬆️ Resistencia: ${signals.keyLevels.nearest.resistance.toFixed(2)}</span>
-                    </div>
+                  <div className="p-1 bg-red-50 rounded border border-red-200">
+                    <p className="text-[8px] text-gray-600 font-medium">🛑 STOP LOSS</p>
+                    <p className="text-xs font-bold text-red-700">${signals.keyLevels.stopLoss.toFixed(2)}</p>
+                    <p className="text-[8px] text-red-600">
+                      -{Math.abs(((signals.keyLevels.stopLoss - signals.keyLevels.entry) / signals.keyLevels.entry) * 100).toFixed(2)}%
+                    </p>
+                  </div>
+
+                  <div className="p-1 bg-green-50 rounded border border-green-200">
+                    <p className="text-[8px] text-gray-600 font-medium">✅ TP1</p>
+                    <p className="text-xs font-bold text-green-700">${signals.keyLevels.takeProfit1.toFixed(2)}</p>
+                    <p className="text-[8px] text-green-600">
+                      +{Math.abs(((signals.keyLevels.takeProfit1 - signals.keyLevels.entry) / signals.keyLevels.entry) * 100).toFixed(2)}%
+                    </p>
+                  </div>
+
+                  <div className="p-1 bg-purple-50 rounded border border-purple-200">
+                    <p className="text-[8px] text-gray-600 font-medium">⚖️ R:R</p>
+                    <p className="text-xs font-bold text-purple-700">1:{signals.keyLevels.riskRewardRatio.toFixed(2)}</p>
                   </div>
                 </div>
               </motion.div>
@@ -315,16 +328,16 @@ export function AdvancedTradingSignals({
         </div>
 
         {/* Probabilidades - COLAPSABLE */}
-        <div className="mb-6">
+        <div className="mb-1.5">
           <button
             onClick={() => toggleSection('probabilities')}
-            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg border border-indigo-200 hover:from-indigo-100 hover:to-blue-100 transition-colors"
+            className="w-full flex items-center justify-between p-1.5 bg-indigo-50 rounded border border-indigo-200 hover:bg-indigo-100 transition-colors"
           >
-            <h3 className="text-lg font-bold text-indigo-900 flex items-center space-x-2">
-              <Percent className="w-5 h-5" />
-              <span>📊 Probabilidades de Escenarios</span>
+            <h3 className="text-[9px] font-bold text-indigo-900 flex items-center space-x-1">
+              <Percent className="w-2.5 h-2.5" />
+              <span>📊 Probabilidades</span>
             </h3>
-            {expandedSections.probabilities ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            {expandedSections.probabilities ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
           </button>
 
           <AnimatePresence>
@@ -333,65 +346,52 @@ export function AdvancedTradingSignals({
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="mt-3 p-5 bg-white rounded-lg border border-indigo-200 space-y-3">
+                <div className="mt-1 p-1.5 bg-white rounded border border-indigo-200 space-y-1">
                   <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-semibold text-gray-700">📈 Continuación Alcista</span>
-                      <span className="text-sm font-bold text-green-600">{signals.probabilities.bullishContinuation}%</span>
+                    <div className="flex justify-between mb-0.5">
+                      <span className="text-[8px] font-medium text-gray-700">📈 Alcista</span>
+                      <span className="text-[8px] font-bold text-green-600">{signals.probabilities.bullishContinuation}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="w-full bg-gray-200 rounded-full h-1">
                       <div
-                        className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500"
+                        className="bg-green-500 h-1 rounded-full"
                         style={{ width: `${signals.probabilities.bullishContinuation}%` }}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-semibold text-gray-700">📉 Continuación Bajista</span>
-                      <span className="text-sm font-bold text-red-600">{signals.probabilities.bearishContinuation}%</span>
+                    <div className="flex justify-between mb-0.5">
+                      <span className="text-[8px] font-medium text-gray-700">📉 Bajista</span>
+                      <span className="text-[8px] font-bold text-red-600">{signals.probabilities.bearishContinuation}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="w-full bg-gray-200 rounded-full h-1">
                       <div
-                        className="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full transition-all duration-500"
+                        className="bg-red-500 h-1 rounded-full"
                         style={{ width: `${signals.probabilities.bearishContinuation}%` }}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-semibold text-gray-700">🔄 Reversión</span>
-                      <span className="text-sm font-bold text-purple-600">{signals.probabilities.reversal}%</span>
+                    <div className="flex justify-between mb-0.5">
+                      <span className="text-[8px] font-medium text-gray-700">⏸️ Consolidación</span>
+                      <span className="text-[8px] font-bold text-gray-600">{signals.probabilities.consolidation}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="w-full bg-gray-200 rounded-full h-1">
                       <div
-                        className="bg-gradient-to-r from-purple-500 to-purple-600 h-3 rounded-full transition-all duration-500"
-                        style={{ width: `${signals.probabilities.reversal}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-semibold text-gray-700">⏸️ Consolidación</span>
-                      <span className="text-sm font-bold text-gray-600">{signals.probabilities.consolidation}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className="bg-gradient-to-r from-gray-500 to-gray-600 h-3 rounded-full transition-all duration-500"
+                        className="bg-gray-500 h-1 rounded-full"
                         style={{ width: `${signals.probabilities.consolidation}%` }}
                       />
                     </div>
                   </div>
 
-                  <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                    <p className="text-sm font-bold text-indigo-900">
-                      🎯 Escenario Más Probable: {signals.probabilities.mostLikely}
+                  <div className="mt-0.5 p-1 bg-indigo-50 rounded border border-indigo-200">
+                    <p className="text-[8px] font-bold text-indigo-900">
+                      🎯 {signals.probabilities.mostLikely} ({Math.max(signals.probabilities.bullishContinuation, signals.probabilities.bearishContinuation, signals.probabilities.consolidation, signals.probabilities.reversal)}%)
                     </p>
                   </div>
                 </div>
@@ -399,18 +399,23 @@ export function AdvancedTradingSignals({
             )}
           </AnimatePresence>
         </div>
+          </>
+        )}
 
-        {/* Indicadores Detallados - COLAPSABLE */}
-        <div className="mb-6">
+        {/* Tab: Indicadores */}
+        {activeTab === 'indicators' && (
+          <>
+        {/* Indicadores Top 3 - Compacto */}
+        <div className="mb-2">
           <button
             onClick={() => toggleSection('indicators')}
-            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg border border-gray-300 hover:from-gray-100 hover:to-slate-100 transition-colors"
+            className="w-full flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-300 hover:bg-gray-100 transition-colors"
           >
-            <h3 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
-              <BarChart3 className="w-5 h-5" />
-              <span>📊 Desglose por Indicador</span>
+            <h3 className="text-[10px] font-bold text-gray-900 flex items-center space-x-1">
+              <BarChart3 className="w-3 h-3" />
+              <span>📊 Top Indicadores</span>
             </h3>
-            {expandedSections.indicators ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            {expandedSections.indicators ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
 
           <AnimatePresence>
@@ -419,74 +424,26 @@ export function AdvancedTradingSignals({
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="mt-3 space-y-3">
-                  {signals.indicators.map((indicator, index) => (
-                    <motion.div
+                <div className="mt-1.5 space-y-1">
+                  {signals.indicators.slice(0, 3).map((indicator, index) => (
+                    <div
                       key={indicator.name}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="p-4 bg-white rounded-lg border-2 border-gray-200 hover:border-blue-300 transition-colors"
+                      className="p-1.5 bg-white rounded border border-gray-200"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          {getSignalIcon(indicator.signal)}
-                          <div>
-                            <span className="text-sm font-bold text-gray-900">
-                              {indicator.name}
-                            </span>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <span className={`text-xs font-bold px-2 py-1 rounded border ${getSignalColor(indicator.signal)}`}>
-                                {indicator.value}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                Peso: {indicator.weight}/4
-                              </span>
-                            </div>
-                          </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1.5">
+                          <div className="w-3 h-3">{getSignalIcon(indicator.signal)}</div>
+                          <span className="text-[9px] font-bold text-gray-900">
+                            {indicator.name}
+                          </span>
                         </div>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${getSignalColor(indicator.signal)}`}>
+                          {indicator.value}
+                        </span>
                       </div>
-                      <p className="text-sm text-gray-700 leading-relaxed ml-7">
-                        {indicator.explanation}
-                      </p>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Insights Educativos - COLAPSABLE */}
-        <div className="mb-6">
-          <button
-            onClick={() => toggleSection('insights')}
-            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg border border-yellow-300 hover:from-yellow-100 hover:to-amber-100 transition-colors"
-          >
-            <h3 className="text-lg font-bold text-yellow-900 flex items-center space-x-2">
-              <Lightbulb className="w-5 h-5" />
-              <span>💡 Lecciones y Consejos Educativos</span>
-            </h3>
-            {expandedSections.insights ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-          </button>
-
-          <AnimatePresence>
-            {expandedSections.insights && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <div className="mt-3 p-5 bg-white rounded-lg border border-yellow-300 space-y-3">
-                  {signals.educationalInsights.map((insight, index) => (
-                    <div key={index} className="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
-                      <Lightbulb className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-gray-800 leading-relaxed">{insight}</p>
                     </div>
                   ))}
                 </div>
@@ -494,18 +451,15 @@ export function AdvancedTradingSignals({
             )}
           </AnimatePresence>
         </div>
+          </>
+        )}
 
-        {/* Disclaimer educativo */}
-        <div className="p-4 bg-orange-50 border-2 border-orange-300 rounded-lg flex items-start space-x-3">
-          <Shield className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-orange-800">
-            <p className="font-bold mb-1">⚠️ AVISO EDUCATIVO IMPORTANTE</p>
-            <p>
-              Este análisis es EDUCATIVO y para PRÁCTICA únicamente. NO es consejo financiero.
-              Siempre haz tu propia investigación, gestiona el riesgo apropiadamente (nunca arriesgues más del 1-2% de tu capital por operación),
-              y practica en simulación antes de usar dinero real. El trading conlleva riesgo de pérdida significativa.
-            </p>
-          </div>
+        {/* Disclaimer compacto - Siempre visible */}
+        <div className="mt-2 p-2 bg-orange-50 border border-orange-300 rounded flex items-start space-x-1.5">
+          <Shield className="w-3 h-3 text-orange-600 shrink-0 mt-0.5" />
+          <p className="text-[9px] text-orange-800 leading-tight">
+            <span className="font-bold">⚠️ EDUCATIVO:</span> NO es consejo financiero. Solo práctica.
+          </p>
         </div>
       </div>
     </Card>

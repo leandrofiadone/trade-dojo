@@ -3,20 +3,25 @@
  *
  * Displays a list of cryptocurrencies with real-time prices from CoinGecko.
  * Updates automatically every 60 seconds.
+ * Includes quick signals with technical indicators based on selected timeframe.
  */
 
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, RefreshCw, Target, Clock } from 'lucide-react';
 import type { Asset } from '../../types/trading';
-import { getMarketPrices, clearPriceCache, getTimeUntilNextUpdate } from '../../lib/priceService';
+import { getMarketPrices, clearPriceCache, getHistoricalCandles } from '../../lib/priceService';
 import { formatCurrency, formatPercentage, formatRelativeTime } from '../../utils/formatters';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
+import { calculateQuickSignal, calculateQuickSignalFromCandles } from '../../lib/quickSignals';
+import type { CandlestickData } from '../../lib/priceHistory';
 
 interface MarketListProps {
   onSelectAsset?: (asset: Asset) => void;
   selectedAssetId?: string;
 }
+
+type SignalTimeframe = '1m' | '3m' | '5m' | '15m' | '30m' | '1h';
 
 export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -24,6 +29,10 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<number>(Date.now());
   const [refreshing, setRefreshing] = useState(false);
+  const [showSignals, setShowSignals] = useState(false);
+  const [signalTimeframe, setSignalTimeframe] = useState<SignalTimeframe>('5m');
+  const [candleDataMap, setCandleDataMap] = useState<Map<string, CandlestickData[]>>(new Map());
+  const [loadingSignals, setLoadingSignals] = useState(false);
 
   // Load market prices
   const loadPrices = async (forceRefresh = false) => {
@@ -49,6 +58,42 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
     }
   };
 
+  // Load candle data for all assets when signals are enabled
+  const loadCandleData = async () => {
+    if (!showSignals || assets.length === 0) {
+      return;
+    }
+
+    setLoadingSignals(true);
+
+    try {
+      const candleMap = new Map<string, CandlestickData[]>();
+
+      // Load candles for top assets (limit to avoid rate limits)
+      const assetsToLoad = assets.slice(0, 12);
+
+      await Promise.all(
+        assetsToLoad.map(async (asset) => {
+          try {
+            const candles = await getHistoricalCandles(asset.id, signalTimeframe, 100);
+
+            if (candles && candles.length > 0) {
+              candleMap.set(asset.id, candles);
+            }
+          } catch (err) {
+            console.warn(`Failed to load candles for ${asset.symbol}:`, err);
+          }
+        })
+      );
+
+      setCandleDataMap(candleMap);
+    } catch (err) {
+      console.error('Error loading candle data:', err);
+    } finally {
+      setLoadingSignals(false);
+    }
+  };
+
   // Initial load
   useEffect(() => {
     loadPrices();
@@ -58,10 +103,17 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
   useEffect(() => {
     const interval = setInterval(() => {
       loadPrices();
-    }, 60 * 1000); // 60 seconds
+    }, 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
+
+  // Load candle data when signals are enabled or timeframe changes
+  useEffect(() => {
+    if (showSignals) {
+      loadCandleData();
+    }
+  }, [showSignals, signalTimeframe, assets]);
 
   const handleRefresh = () => {
     loadPrices(true);
@@ -109,10 +161,12 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
     );
   }
 
+  const timeframes: SignalTimeframe[] = ['1m', '3m', '5m', '15m', '30m', '1h'];
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <CardTitle>📊 Market Prices</CardTitle>
           <div className="flex items-center space-x-2">
             <span className="text-xs text-gray-500">
@@ -129,6 +183,64 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
             </Button>
           </div>
         </div>
+
+        {/* Signals Toggle */}
+        <div className="pt-2 border-t border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Target className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-gray-700">Señales con Indicadores</span>
+              {loadingSignals && <RefreshCw className="w-3 h-3 animate-spin text-blue-600" />}
+            </div>
+            <button
+              onClick={() => setShowSignals(!showSignals)}
+              className={`
+                relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                ${showSignals ? 'bg-blue-600' : 'bg-gray-300'}
+              `}
+              aria-label="Toggle signals"
+            >
+              <span
+                className={`
+                  inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                  ${showSignals ? 'translate-x-6' : 'translate-x-1'}
+                `}
+              />
+            </button>
+          </div>
+
+          {/* Timeframe Selector */}
+          {showSignals && (
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center space-x-1">
+                <Clock className="w-3 h-3 text-gray-500" />
+                <span className="text-xs font-medium text-gray-600">Timeframe:</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {timeframes.map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => setSignalTimeframe(tf)}
+                    className={`
+                      px-2 py-1 text-xs font-medium rounded transition-colors
+                      ${signalTimeframe === tf
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
+                    `}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                💡 Sistema PROFESIONAL: 19 INDICADORES • RSI • Stoch • CCI • Williams%R • ROC • MFI • EMA • MACD • SAR • Supertrend • Estructura • BB • OBV • VWAP • Divergencias • Patrones
+              </p>
+              <p className="text-xs text-green-700 font-medium mt-0.5">
+                📊 {candleDataMap.size}/{Math.min(12, assets.length)} assets • Q{'>'}45 recomendado para scalping
+              </p>
+            </div>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="!p-0">
@@ -136,6 +248,17 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
           {assets.map((asset) => {
             const isPositive = asset.price_change_percentage_24h >= 0;
             const isSelected = asset.id === selectedAssetId;
+
+            // Calculate signal
+            let signal = null;
+            if (showSignals) {
+              const candleData = candleDataMap.get(asset.id);
+              if (candleData && candleData.length > 0) {
+                signal = calculateQuickSignalFromCandles(candleData, asset);
+              } else {
+                signal = calculateQuickSignal(asset);
+              }
+            }
 
             return (
               <div
@@ -155,9 +278,63 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
                       className="w-8 h-8 rounded-full"
                     />
                   )}
-                  <div>
+                  <div className="flex-1">
                     <p className="font-semibold text-gray-900">{asset.name}</p>
                     <p className="text-sm text-gray-500">{asset.symbol}</p>
+
+                    {/* Signal Badge with Gradient + Quality Score */}
+                    {signal && (
+                      <div className="mt-1.5 space-y-1">
+                        <div className="flex items-center space-x-1">
+                          <span
+                            className={`
+                              inline-block px-2 py-0.5 rounded-full text-xs font-bold
+                              ${signal.bgGradient} ${signal.color}
+                              ${signal.type === 'extreme-buy' || signal.type === 'extreme-sell' || signal.type === 'strong-buy' || signal.type === 'strong-sell'
+                                ? 'shadow-md ring-2 ring-offset-1 ' +
+                                  (signal.type === 'extreme-buy' || signal.type === 'strong-buy' ? 'ring-green-500' : 'ring-red-500')
+                                : 'shadow-sm'}
+                            `}
+                            title={`Confirmaciones:\n${signal.confirmations.join('\n')}\n\nAdvertencias:\n${signal.warnings.join('\n')}`}
+                          >
+                            {signal.emoji} {signal.label}
+                          </span>
+                          {/* Quality Score Badge */}
+                          <span
+                            className={`
+                              px-1.5 py-0.5 rounded text-xs font-bold
+                              ${signal.qualityScore >= 80
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                : signal.qualityScore >= 60
+                                ? 'bg-green-100 text-green-800 border border-green-300'
+                                : signal.qualityScore >= 40
+                                ? 'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                                : 'bg-gray-100 text-gray-600 border border-gray-300'
+                              }
+                            `}
+                            title={`Quality Score: ${signal.qualityScore}/100`}
+                          >
+                            Q{signal.qualityScore}
+                          </span>
+                        </div>
+                        {/* Confirmations count */}
+                        <div className="text-xs text-gray-600">
+                          ✓ {signal.confirmations.length} confirmación{signal.confirmations.length !== 1 ? 'es' : ''}
+                          {signal.warnings.length > 0 && ` • ⚠️ ${signal.warnings.length} advertencia${signal.warnings.length !== 1 ? 's' : ''}`}
+                        </div>
+                        {/* Strength Bar */}
+                        <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${
+                              signal.strength > 50
+                                ? 'bg-gradient-to-r from-green-400 to-green-600'
+                                : 'bg-gradient-to-r from-red-600 to-red-400'
+                            }`}
+                            style={{ width: `${Math.abs(signal.strength - 50) * 2}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

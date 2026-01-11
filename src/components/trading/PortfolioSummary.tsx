@@ -56,32 +56,30 @@ export function PortfolioSummary({ portfolio, totalTrades, initialBalance }: Por
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-4 gap-1">
       {stats.map((stat, index) => {
         const Icon = stat.icon;
 
         return (
           <motion.div
             key={index}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow"
+            transition={{ duration: 0.15, delay: index * 0.03 }}
+            className="bg-white rounded shadow-sm p-1 border border-gray-200"
           >
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-gray-600 font-medium">{stat.label}</p>
-              <div className={`p-1.5 rounded-md ${stat.bgColor}`}>
-                <Icon className={`w-4 h-4 ${stat.color}`} />
-              </div>
+            <div className="flex items-center justify-between mb-0.5">
+              <p className="text-[8px] text-gray-600 font-medium">{stat.label}</p>
+              <Icon className={`w-2.5 h-2.5 ${stat.color}`} />
             </div>
 
-            <p className={`text-xl font-bold mb-0.5 ${
+            <p className={`text-xs font-bold ${
               stat.label === 'Total P&L' ? stat.color : 'text-gray-900'
             }`}>
               {stat.value}
             </p>
 
-            <p className={`text-xs ${
+            <p className={`text-[7px] ${
               stat.label === 'Total P&L'
                 ? stat.color
                 : 'text-gray-500'

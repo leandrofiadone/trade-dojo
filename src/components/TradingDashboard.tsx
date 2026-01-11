@@ -461,101 +461,89 @@ export function TradingDashboard() {
         }}
       />
 
-      {/* Header - TODO EN UNA LINEA ULTRA COMPACTO */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-        <div className="mx-auto px-2 py-0.5">
-          <div className="flex items-center justify-between gap-2 overflow-x-auto">
+      {/* Header - Rediseño: Inline stats con separadores, texto más legible */}
+      <header className="bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-lg sticky top-0 z-10">
+        <div className="mx-auto px-3 py-1.5">
+          <div className="flex items-center justify-between gap-4">
             {/* Logo + Title */}
-            <div className="flex items-center space-x-1 shrink-0">
-              <span className="text-sm">📈</span>
-              <h1 className="text-[10px] font-bold text-gray-900 hidden sm:inline">Trading</h1>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-lg">📈</span>
+              <h1 className="text-sm font-bold hidden sm:inline">Trading Dojo</h1>
             </div>
 
-            {/* Portfolio Stats Inline */}
-            <div className="flex items-center gap-1 flex-1">
-              {/* Balance */}
-              <div className="flex items-center gap-0.5 px-1 py-0.5 bg-blue-50 rounded border border-blue-200 shrink-0">
-                <Wallet className="w-2.5 h-2.5 text-blue-600" />
-                <div>
-                  <p className="text-[7px] text-gray-600 leading-none">Balance</p>
-                  <p className="text-[9px] font-bold text-gray-900 leading-none">{formatCurrency(portfolio.balance)}</p>
-                </div>
+            {/* Portfolio Stats - Inline con separadores */}
+            <div className="flex items-center gap-3 text-xs flex-1 overflow-x-auto">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-gray-400">💰</span>
+                <span className="font-semibold">{formatCurrency(portfolio.balance)}</span>
               </div>
 
-              {/* Invested */}
-              <div className="flex items-center gap-0.5 px-1 py-0.5 bg-purple-50 rounded border border-purple-200 shrink-0">
-                <DollarSign className="w-2.5 h-2.5 text-purple-600" />
-                <div>
-                  <p className="text-[7px] text-gray-600 leading-none">Invested</p>
-                  <p className="text-[9px] font-bold text-gray-900 leading-none">{formatCurrency(portfolio.totalInvested)}</p>
-                </div>
+              <span className="text-gray-600">|</span>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-gray-400">📊</span>
+                <span className="font-semibold">{formatCurrency(portfolio.totalInvested)}</span>
               </div>
 
-              {/* P&L */}
-              <div className={`flex items-center gap-0.5 px-1 py-0.5 rounded border shrink-0 ${
-                (portfolio.totalValue - initialBalance) >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+              <span className="text-gray-600">|</span>
+
+              <div className={`flex items-center gap-1.5 shrink-0 ${
+                (portfolio.totalValue - initialBalance) >= 0 ? 'text-green-400' : 'text-red-400'
               }`}>
-                <TrendingUp className={`w-2.5 h-2.5 ${
-                  (portfolio.totalValue - initialBalance) >= 0 ? 'text-green-600' : 'text-red-600'
-                }`} />
-                <div>
-                  <p className="text-[7px] text-gray-600 leading-none">P&L</p>
-                  <p className={`text-[9px] font-bold leading-none ${
-                    (portfolio.totalValue - initialBalance) >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {formatCurrency(portfolio.totalValue - initialBalance)}
-                  </p>
-                </div>
+                <span>{(portfolio.totalValue - initialBalance) >= 0 ? '📈' : '📉'}</span>
+                <span className="font-bold">
+                  {formatCurrency(portfolio.totalValue - initialBalance)}
+                  {' '}
+                  ({formatPercentage(((portfolio.totalValue - initialBalance) / initialBalance) * 100)})
+                </span>
               </div>
 
-              {/* Trades */}
-              <div className="flex items-center gap-0.5 px-1 py-0.5 bg-gray-50 rounded border border-gray-200 shrink-0">
-                <Activity className="w-2.5 h-2.5 text-gray-600" />
-                <div>
-                  <p className="text-[7px] text-gray-600 leading-none">Trades</p>
-                  <p className="text-[9px] font-bold text-gray-900 leading-none">{trades.length}</p>
-                </div>
+              <span className="text-gray-600">|</span>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-gray-400">🎯</span>
+                <span className="font-semibold">{trades.length} trades</span>
               </div>
             </div>
 
             {/* Spot/Futures Tabs */}
-            <div className="flex items-center gap-0.5 shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => setActiveTab('spot')}
-                className={`px-2 py-0.5 rounded text-[8px] font-semibold transition-all ${
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                   activeTab === 'spot'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
-                💰 Spot
+                Spot
               </button>
               <button
                 onClick={() => setActiveTab('futures')}
-                className={`px-2 py-0.5 rounded text-[8px] font-semibold transition-all ${
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                   activeTab === 'futures'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-orange-500 text-white shadow-md'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
-                ⚡ Futures
+                Futures
               </button>
             </div>
 
             {/* Reset */}
             <div className="shrink-0">
               {showResetConfirm ? (
-                <div className="flex items-center gap-0.5 bg-yellow-50 border border-yellow-300 rounded px-1 py-0.5">
-                  <span className="text-[8px] text-yellow-800">Sure?</span>
+                <div className="flex items-center gap-1 bg-yellow-900 border border-yellow-600 rounded px-2 py-1">
+                  <span className="text-xs text-yellow-200">Sure?</span>
                   <button
                     onClick={handleReset}
-                    className="text-[8px] bg-red-500 text-white px-1 py-0.5 rounded hover:bg-red-600"
+                    className="text-xs bg-red-500 text-white px-2 py-0.5 rounded hover:bg-red-600 font-semibold"
                   >
                     Yes
                   </button>
                   <button
                     onClick={() => setShowResetConfirm(false)}
-                    className="text-[8px] text-gray-600 px-1 py-0.5 hover:text-gray-900"
+                    className="text-xs text-gray-300 px-2 py-0.5 hover:text-white"
                   >
                     No
                   </button>
@@ -563,7 +551,7 @@ export function TradingDashboard() {
               ) : (
                 <button
                   onClick={handleReset}
-                  className="text-[8px] text-gray-600 hover:text-gray-900 px-1 py-0.5"
+                  className="text-xs text-gray-400 hover:text-white px-2 py-1"
                 >
                   Reset
                 </button>

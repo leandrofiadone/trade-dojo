@@ -99,14 +99,45 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
     loadPrices();
   }, []);
 
-  // Auto-refresh every 60 seconds
+  // OPTIMIZADO PARA SCALPING: Auto-refresh basado en timeframe
   useEffect(() => {
+    // Determinar intervalo según timeframe seleccionado
+    let refreshInterval = 60 * 1000; // Default: 60 segundos
+
+    if (showSignals) {
+      // Para scalping, ajustar según timeframe
+      switch (signalTimeframe) {
+        case '1m':
+          refreshInterval = 5 * 1000; // 5 segundos para 1m
+          break;
+        case '3m':
+          refreshInterval = 10 * 1000; // 10 segundos para 3m
+          break;
+        case '5m':
+          refreshInterval = 15 * 1000; // 15 segundos para 5m
+          break;
+        case '15m':
+          refreshInterval = 30 * 1000; // 30 segundos para 15m
+          break;
+        case '30m':
+          refreshInterval = 45 * 1000; // 45 segundos para 30m
+          break;
+        case '1h':
+          refreshInterval = 60 * 1000; // 60 segundos para 1h
+          break;
+      }
+    }
+
     const interval = setInterval(() => {
       loadPrices();
-    }, 60 * 1000);
+      // Si las señales están activas, también actualizar las velas
+      if (showSignals) {
+        loadCandleData();
+      }
+    }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [showSignals, signalTimeframe]); // Re-crear interval cuando cambia timeframe
 
   // Load candle data when signals are enabled or timeframe changes
   useEffect(() => {
@@ -163,12 +194,31 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
 
   const timeframes: SignalTimeframe[] = ['1m', '3m', '5m', '15m', '30m', '1h'];
 
+  // Calcular intervalo de actualización actual
+  const getRefreshInterval = () => {
+    if (!showSignals) return 60;
+    switch (signalTimeframe) {
+      case '1m': return 5;
+      case '3m': return 10;
+      case '5m': return 15;
+      case '15m': return 30;
+      case '30m': return 45;
+      case '1h': return 60;
+      default: return 60;
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between mb-2">
           <CardTitle>📊 Market Prices</CardTitle>
           <div className="flex items-center space-x-2">
+            {showSignals && (
+              <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                🔄 {getRefreshInterval()}s
+              </span>
+            )}
             <span className="text-xs text-gray-500">
               Updated {formatRelativeTime(lastUpdate)}
             </span>
@@ -236,7 +286,7 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
                 💡 Sistema PROFESIONAL: 19 INDICADORES • RSI • Stoch • CCI • Williams%R • ROC • MFI • EMA • MACD • SAR • Supertrend • Estructura • BB • OBV • VWAP • Divergencias • Patrones
               </p>
               <p className="text-xs text-green-700 font-medium mt-0.5">
-                📊 {candleDataMap.size}/{Math.min(12, assets.length)} assets • Q{'>'}45 recomendado para scalping
+                📊 {candleDataMap.size}/{Math.min(12, assets.length)} assets • Q{'>'}45 recomendado • Auto-refresh cada {getRefreshInterval()}s
               </p>
             </div>
           )}

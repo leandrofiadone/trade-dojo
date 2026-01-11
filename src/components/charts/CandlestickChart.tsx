@@ -24,6 +24,7 @@ import {
 import { Card, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { TrendingUp, TrendingDown, Maximize2, Minimize2, RefreshCw, Info } from 'lucide-react';
+import { MarketSentiment } from '../analysis/MarketSentiment';
 
 interface CandlestickChartProps {
   data: CandlestickData[];
@@ -442,6 +443,17 @@ export function CandlestickChart({
           </div>
         </div>
       </CardHeader>
+
+      {/* Market Sentiment Badge */}
+      {volumeData && volumeData.length > 0 && (
+        <div className="px-6 pt-4">
+          <MarketSentiment
+            candleData={data}
+            volumeData={volumeData}
+            priceChange24h={priceChange24h}
+          />
+        </div>
+      )}
 
       {/* Chart */}
       <div className="px-6 relative">

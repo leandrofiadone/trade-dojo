@@ -51,6 +51,7 @@ import { TradeHistory } from './trading/TradeHistory';
 import { CandlestickChart } from './charts/CandlestickChart';
 import { FuturesTradingForm } from './futures/FuturesTradingForm';
 import { FuturesPositionList } from './futures/FuturesPositionList';
+import { AdvancedTradingSignals } from './analysis/AdvancedTradingSignals';
 import { Button } from './ui/Button';
 
 // Hooks
@@ -79,7 +80,7 @@ export function TradingDashboard() {
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>('5m');
 
   // Mobile responsive states
-  const [mobileView, setMobileView] = useState<'chart' | 'market' | 'trade' | 'portfolio'>('chart');
+  const [mobileView, setMobileView] = useState<'chart' | 'market' | 'trade' | 'portfolio' | 'signals'>('chart');
   const [isMobile, setIsMobile] = useState(false);
 
   // Detect if mobile
@@ -645,6 +646,23 @@ export function TradingDashboard() {
                 <span className="text-lg" aria-hidden="true">💼</span>
                 <span>Portfolio</span>
               </button>
+
+              <button
+                onClick={() => setMobileView('signals')}
+                aria-label="View trading signals"
+                aria-pressed={mobileView === 'signals'}
+                className={`
+                  flex-1 py-3 px-2 rounded-md text-xs font-semibold transition-all duration-200
+                  flex flex-col items-center justify-center space-y-1
+                  ${mobileView === 'signals'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50'
+                  }
+                `}
+              >
+                <span className="text-lg" aria-hidden="true">🎯</span>
+                <span>Signals</span>
+              </button>
             </nav>
           </div>
         )}
@@ -670,6 +688,24 @@ export function TradingDashboard() {
           <div className="mb-8 p-8 bg-white rounded-lg shadow-md border border-gray-200 text-center">
             <p className="text-gray-600 font-medium">📊 Selecciona una criptomoneda del Market List para ver el gráfico de velas</p>
             <p className="text-sm text-gray-500 mt-2">Haz click en cualquier crypto de la lista</p>
+          </div>
+        )}
+
+        {/* Trading Signals Panel - Desktop y Mobile */}
+        {selectedAsset && (!isMobile || mobileView === 'signals') && candlestickData.length > 0 && (
+          <div className="mb-8">
+            <AdvancedTradingSignals
+              candleData={candlestickData}
+              volumeData={volumeData}
+              assetName={selectedAsset.name}
+            />
+          </div>
+        )}
+
+        {!selectedAsset && (!isMobile || mobileView === 'signals') && (
+          <div className="mb-8 p-8 bg-white rounded-lg shadow-md border border-gray-200 text-center">
+            <p className="text-gray-600 font-medium">🎯 Selecciona una criptomoneda para ver señales de trading</p>
+            <p className="text-sm text-gray-500 mt-2">Las señales te ayudarán a tomar decisiones informadas</p>
           </div>
         )}
 

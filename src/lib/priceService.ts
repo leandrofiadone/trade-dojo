@@ -34,7 +34,8 @@ function getCoingeckoImageId(id: string): number {
     chainlink: 1975,
     litecoin: 2,
     uniswap: 7083,
-    stellar: 512
+    stellar: 512,
+    'pax-gold': 4705
   };
   return map[id] || 1;
 }
@@ -57,7 +58,8 @@ export const TRACKED_ASSETS = [
   { symbol: 'LINKUSDT', id: 'chainlink', name: 'Chainlink', displaySymbol: 'LINK' },
   { symbol: 'LTCUSDT', id: 'litecoin', name: 'Litecoin', displaySymbol: 'LTC' },
   { symbol: 'UNIUSDT', id: 'uniswap', name: 'Uniswap', displaySymbol: 'UNI' },
-  { symbol: 'XLMUSDT', id: 'stellar', name: 'Stellar', displaySymbol: 'XLM' }
+  { symbol: 'XLMUSDT', id: 'stellar', name: 'Stellar', displaySymbol: 'XLM' },
+  { symbol: 'PAXGUSDT', id: 'pax-gold', name: 'PAX Gold', displaySymbol: 'PAXG' }
 ];
 
 // ==================== CACHE ====================

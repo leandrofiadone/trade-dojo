@@ -11,6 +11,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, AlertCircle } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import type {
   Asset,
   Portfolio as PortfolioType,
@@ -75,6 +77,21 @@ export function TradingDashboard() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState<'spot' | 'futures'>('spot');
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>('5m');
+
+  // Mobile responsive states
+  const [mobileView, setMobileView] = useState<'chart' | 'market' | 'trade' | 'portfolio'>('chart');
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect if mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024); // lg breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Convert timeframe string to minutes
   const timeframeToMinutes = (tf: string): number => {
@@ -181,12 +198,20 @@ export function TradingDashboard() {
           balance: prev.balance + returnAmount
         }));
 
-        // Alert user
-        const message = reason === 'LIQUIDATION'
-          ? `⚠️ LIQUIDADO! Tu posición ${position.side} ${position.assetSymbol} fue liquidada.\nPérdida: ${closedPosition.realizedPnL?.toFixed(2)} USD`
-          : `✅ ${reason === 'STOP_LOSS' ? 'Stop Loss' : 'Take Profit'} ejecutado!\n${position.side} ${position.assetSymbol}\nP&L: ${closedPosition.realizedPnL?.toFixed(2)} USD`;
-
-        alert(message);
+        // Notify user with toast
+        if (reason === 'LIQUIDATION') {
+          toast.error(
+            `LIQUIDADO! Tu posición ${position.side} ${position.assetSymbol} fue liquidada.\nPérdida: $${closedPosition.realizedPnL?.toFixed(2)}`,
+            { duration: 6000 }
+          );
+        } else {
+          const pnl = closedPosition.realizedPnL || 0;
+          const toastFn = pnl >= 0 ? toast.success : toast.error;
+          toastFn(
+            `${reason === 'STOP_LOSS' ? 'Stop Loss' : 'Take Profit'} ejecutado!\n${position.side} ${position.assetSymbol} | P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`,
+            { duration: 5000 }
+          );
+        }
       });
 
       // Update positions list
@@ -300,8 +325,11 @@ export function TradingDashboard() {
 
     console.log('✅ Trade executed:', result.trade);
 
-    // Show success message (you could add a toast notification here)
-    alert(`✅ ${type.toUpperCase()} order executed!\n\n${quantity.toFixed(8)} ${asset.symbol} @ ${asset.current_price.toFixed(2)} USD`);
+    // Show success toast
+    toast.success(
+      `${type.toUpperCase()} order executed!\n${quantity.toFixed(8)} ${asset.symbol} @ $${asset.current_price.toFixed(2)}`,
+      { duration: 3000 }
+    );
   };
 
   /**
@@ -324,7 +352,10 @@ export function TradingDashboard() {
 
     console.log('✅ Position opened:', position);
 
-    alert(`✅ Posición ${formData.side} abierta!\n\n${asset.symbol} ${formData.leverage}x\nMargin: $${formData.margin}\nLiquidación: $${position.liquidationPrice.toFixed(2)}`);
+    toast.success(
+      `Posición ${formData.side} abierta!\n${asset.symbol} ${formData.leverage}x | Margin: $${formData.margin}\nLiquidación: $${position.liquidationPrice.toFixed(2)}`,
+      { duration: 4000 }
+    );
   };
 
   /**
@@ -351,7 +382,11 @@ export function TradingDashboard() {
     console.log('✅ Position closed:', closedPosition);
 
     const pnl = closedPosition.realizedPnL || 0;
-    alert(`✅ Posición cerrada!\n\n${position.side} ${position.assetSymbol}\nP&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${closedPosition.unrealizedPnLPercentage.toFixed(2)}%)`);
+    const toastFn = pnl >= 0 ? toast.success : toast.error;
+    toastFn(
+      `Posición cerrada!\n${position.side} ${position.assetSymbol}\nP&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${closedPosition.unrealizedPnLPercentage.toFixed(2)}%)`,
+      { duration: 4000 }
+    );
   };
 
   /**
@@ -381,7 +416,7 @@ export function TradingDashboard() {
     setInitialBalance(INITIAL_BALANCE);
     setShowResetConfirm(false);
 
-    alert('✅ All data has been reset!');
+    toast.success('All data has been reset!', { duration: 3000 });
   };
 
   if (loading) {
@@ -397,6 +432,31 @@ export function TradingDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#fff',
+            color: '#363636',
+            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -445,9 +505,9 @@ export function TradingDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Portfolio Summary Cards */}
-        <div className="mb-8">
+        <div className="mb-6">
           <PortfolioSummary
             portfolio={portfolio}
             totalTrades={trades.length}
@@ -455,40 +515,142 @@ export function TradingDashboard() {
           />
         </div>
 
-        {/* Trading Mode Tabs */}
+        {/* Trading Mode Tabs - MEJORADOS */}
         <div className="mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
+            <nav className="flex space-x-2" role="navigation" aria-label="Trading mode selection">
               <button
                 onClick={() => setActiveTab('spot')}
+                aria-label="Switch to Spot Trading mode"
+                aria-pressed={activeTab === 'spot'}
                 className={`
-                  py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                  flex-1 py-4 px-6 rounded-lg font-semibold text-sm transition-all duration-200
+                  flex items-center justify-center space-x-2
                   ${activeTab === 'spot'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md transform scale-105'
+                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }
                 `}
               >
-                💰 Spot Trading
+                <span className="text-xl" aria-hidden="true">💰</span>
+                <span>Spot Trading</span>
+                {activeTab === 'spot' && <span className="ml-2 text-xs bg-white/20 px-2 py-0.5 rounded">Activo</span>}
               </button>
+
               <button
                 onClick={() => setActiveTab('futures')}
+                aria-label="Switch to Futures Trading mode - High risk"
+                aria-pressed={activeTab === 'futures'}
                 className={`
-                  py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                  flex-1 py-4 px-6 rounded-lg font-semibold text-sm transition-all duration-200
+                  flex items-center justify-center space-x-2 relative
                   ${activeTab === 'futures'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md transform scale-105'
+                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }
                 `}
               >
-                ⚡ Futures Trading (Leverage)
+                <span className="text-xl" aria-hidden="true">⚡</span>
+                <span>Futures Trading</span>
+                <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
+                  activeTab === 'futures'
+                    ? 'bg-white/20'
+                    : 'bg-red-100 text-red-700 font-bold'
+                }`}>
+                  ALTO RIESGO
+                </span>
               </button>
             </nav>
           </div>
+
+          {/* Subtle indicator below */}
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              {activeTab === 'spot'
+                ? '📘 Modo básico: Compra y vende criptomonedas al precio actual'
+                : '⚠️ Modo avanzado: Trading con apalancamiento (leverage) - Riesgo de liquidación'
+              }
+            </p>
+          </div>
         </div>
 
-        {/* Candlestick Chart */}
-        {selectedAsset && (
+        {/* Mobile Navigation Tabs - Solo visible en mobile */}
+        {isMobile && (
+          <div className="mb-6 sticky top-[73px] z-20 bg-gray-50 -mx-4 px-4 py-3 shadow-md">
+            <nav className="flex space-x-1 bg-white rounded-lg p-1 shadow-sm" role="navigation" aria-label="Mobile view selection">
+              <button
+                onClick={() => setMobileView('chart')}
+                aria-label="View price chart"
+                aria-pressed={mobileView === 'chart'}
+                className={`
+                  flex-1 py-3 px-2 rounded-md text-xs font-semibold transition-all duration-200
+                  flex flex-col items-center justify-center space-y-1
+                  ${mobileView === 'chart'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50'
+                  }
+                `}
+              >
+                <span className="text-lg" aria-hidden="true">📊</span>
+                <span>Chart</span>
+              </button>
+
+              <button
+                onClick={() => setMobileView('market')}
+                aria-label="View market list"
+                aria-pressed={mobileView === 'market'}
+                className={`
+                  flex-1 py-3 px-2 rounded-md text-xs font-semibold transition-all duration-200
+                  flex flex-col items-center justify-center space-y-1
+                  ${mobileView === 'market'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50'
+                  }
+                `}
+              >
+                <span className="text-lg" aria-hidden="true">💹</span>
+                <span>Market</span>
+              </button>
+
+              <button
+                onClick={() => setMobileView('trade')}
+                aria-label="View trading form"
+                aria-pressed={mobileView === 'trade'}
+                className={`
+                  flex-1 py-3 px-2 rounded-md text-xs font-semibold transition-all duration-200
+                  flex flex-col items-center justify-center space-y-1
+                  ${mobileView === 'trade'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50'
+                  }
+                `}
+              >
+                <span className="text-lg" aria-hidden="true">🎯</span>
+                <span>Trade</span>
+              </button>
+
+              <button
+                onClick={() => setMobileView('portfolio')}
+                aria-label="View portfolio"
+                aria-pressed={mobileView === 'portfolio'}
+                className={`
+                  flex-1 py-3 px-2 rounded-md text-xs font-semibold transition-all duration-200
+                  flex flex-col items-center justify-center space-y-1
+                  ${mobileView === 'portfolio'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50'
+                  }
+                `}
+              >
+                <span className="text-lg" aria-hidden="true">💼</span>
+                <span>Portfolio</span>
+              </button>
+            </nav>
+          </div>
+        )}
+
+        {/* Candlestick Chart - Desktop: siempre visible, Mobile: solo si mobileView === 'chart' */}
+        {selectedAsset && (!isMobile || mobileView === 'chart') && (
           <div className="mb-8">
             <CandlestickChart
               data={candlestickData}
@@ -504,7 +666,7 @@ export function TradingDashboard() {
           </div>
         )}
 
-        {!selectedAsset && (
+        {!selectedAsset && (!isMobile || mobileView === 'chart') && (
           <div className="mb-8 p-8 bg-white rounded-lg shadow-md border border-gray-200 text-center">
             <p className="text-gray-600 font-medium">📊 Selecciona una criptomoneda del Market List para ver el gráfico de velas</p>
             <p className="text-sm text-gray-500 mt-2">Haz click en cualquier crypto de la lista</p>
@@ -512,90 +674,132 @@ export function TradingDashboard() {
         )}
 
         {/* Main Grid - Spot Trading */}
-        {activeTab === 'spot' && (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column: Market List */}
-              <div className="lg:col-span-1">
-                <MarketList
-                  onSelectAsset={setSelectedAsset}
-                  selectedAssetId={selectedAsset?.id}
-                />
-              </div>
+        <AnimatePresence mode="wait">
+          {activeTab === 'spot' && (
+            <motion.div
+              key="spot-trading"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Desktop: Grid de 3 columnas, Mobile: Una vista a la vez */}
+              <div className={isMobile ? 'space-y-6' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'}>
+              {/* Left Column: Market List - Sticky en desktop */}
+              {(!isMobile || mobileView === 'market') && (
+                <div className="lg:col-span-1">
+                  <div className="lg:sticky lg:top-24">
+                    <MarketList
+                      onSelectAsset={setSelectedAsset}
+                      selectedAssetId={selectedAsset?.id}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Middle Column: Trading Form */}
-              <div className="lg:col-span-1">
-                <TradingForm
-                  assets={assets}
-                  portfolio={portfolio}
-                  selectedAsset={selectedAsset}
-                  onTrade={handleTrade}
-                />
-              </div>
+              {(!isMobile || mobileView === 'trade') && (
+                <div className="lg:col-span-1">
+                  <TradingForm
+                    assets={assets}
+                    portfolio={portfolio}
+                    selectedAsset={selectedAsset}
+                    onTrade={handleTrade}
+                  />
+                </div>
+              )}
 
-              {/* Right Column: Portfolio */}
-              <div className="lg:col-span-1">
-                <Portfolio portfolio={portfolio} />
-              </div>
+              {/* Right Column: Portfolio - Sticky en desktop */}
+              {(!isMobile || mobileView === 'portfolio') && (
+                <div className="lg:col-span-1">
+                  <div className="lg:sticky lg:top-24">
+                    <Portfolio portfolio={portfolio} />
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Trade History */}
-            <div className="mt-6">
-              <TradeHistory trades={trades} />
-            </div>
-          </>
-        )}
+              {/* Trade History - Solo en desktop o en vista portfolio en mobile */}
+              {(!isMobile || mobileView === 'portfolio') && (
+                <div className="mt-6">
+                  <TradeHistory trades={trades} />
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Main Grid - Futures Trading */}
-        {activeTab === 'futures' && (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column: Market List */}
-              <div className="lg:col-span-1">
-                <MarketList
-                  onSelectAsset={setSelectedAsset}
-                  selectedAssetId={selectedAsset?.id}
-                />
-              </div>
+        <AnimatePresence mode="wait">
+          {activeTab === 'futures' && (
+            <motion.div
+              key="futures-trading"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Desktop: Grid de 3 columnas, Mobile: Una vista a la vez */}
+              <div className={isMobile ? 'space-y-6' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'}>
+              {/* Left Column: Market List - Sticky en desktop */}
+              {(!isMobile || mobileView === 'market') && (
+                <div className="lg:col-span-1">
+                  <div className="lg:sticky lg:top-24">
+                    <MarketList
+                      onSelectAsset={setSelectedAsset}
+                      selectedAssetId={selectedAsset?.id}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Middle Column: Futures Trading Form */}
-              <div className="lg:col-span-1">
-                <FuturesTradingForm
-                  assets={assets}
-                  selectedAsset={selectedAsset}
-                  availableBalance={portfolio.balance}
-                  onOpenPosition={handleOpenPosition}
-                />
-              </div>
+              {(!isMobile || mobileView === 'trade') && (
+                <div className="lg:col-span-1">
+                  <FuturesTradingForm
+                    assets={assets}
+                    selectedAsset={selectedAsset}
+                    availableBalance={portfolio.balance}
+                    onOpenPosition={handleOpenPosition}
+                  />
+                </div>
+              )}
 
-              {/* Right Column: Futures Positions */}
-              <div className="lg:col-span-1">
-                <FuturesPositionList
-                  positions={futuresPositions.filter(p => p.status === 'OPEN')}
-                  onClosePosition={handleClosePosition}
-                />
-              </div>
+              {/* Right Column: Futures Positions - Sticky en desktop */}
+              {(!isMobile || mobileView === 'portfolio') && (
+                <div className="lg:col-span-1">
+                  <div className="lg:sticky lg:top-24">
+                    <FuturesPositionList
+                      positions={futuresPositions.filter(p => p.status === 'OPEN')}
+                      onClosePosition={handleClosePosition}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Educational Note for Futures */}
-            <div className="mt-6 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h3 className="text-lg font-semibold text-yellow-900 mb-2">
-                ⚠️ Advertencia: Trading con Leverage
-              </h3>
-              <p className="text-yellow-800 mb-3">
-                El trading de futuros con apalancamiento es <strong>extremadamente riesgoso</strong>.
-                Puedes perder todo tu capital rápidamente.
-              </p>
-              <ul className="space-y-1 text-sm text-yellow-700">
-                <li>• <strong>Leverage amplifica pérdidas:</strong> Con 10x leverage, una caída del 10% = liquidación total</li>
-                <li>• <strong>Usa Stop Loss:</strong> Siempre limita tus pérdidas potenciales</li>
-                <li>• <strong>Empieza con leverage bajo:</strong> Prueba con 2x-5x antes de usar leverage alto</li>
-                <li>• <strong>No uses todo tu capital:</strong> Nunca arriesgues más del 1-5% por posición</li>
-                <li>• <strong>Esto es práctica:</strong> Aprende aquí antes de arriesgar dinero real</li>
-              </ul>
-            </div>
-          </>
-        )}
+              {/* Educational Note for Futures - Solo en desktop o en vista portfolio/trade en mobile */}
+              {(!isMobile || mobileView === 'trade' || mobileView === 'portfolio') && (
+                <div className="mt-6 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h3 className="text-lg font-semibold text-yellow-900 mb-2">
+                    ⚠️ Advertencia: Trading con Leverage
+                  </h3>
+                  <p className="text-yellow-800 mb-3">
+                    El trading de futuros con apalancamiento es <strong>extremadamente riesgoso</strong>.
+                    Puedes perder todo tu capital rápidamente.
+                  </p>
+                  <ul className="space-y-1 text-sm text-yellow-700">
+                    <li>• <strong>Leverage amplifica pérdidas:</strong> Con 10x leverage, una caída del 10% = liquidación total</li>
+                    <li>• <strong>Usa Stop Loss:</strong> Siempre limita tus pérdidas potenciales</li>
+                    <li>• <strong>Empieza con leverage bajo:</strong> Prueba con 2x-5x antes de usar leverage alto</li>
+                    <li>• <strong>No uses todo tu capital:</strong> Nunca arriesgues más del 1-5% por posición</li>
+                    <li>• <strong>Esto es práctica:</strong> Aprende aquí antes de arriesgar dinero real</li>
+                  </ul>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Phase 2 Teaser */}
         <div className="mt-6 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6">

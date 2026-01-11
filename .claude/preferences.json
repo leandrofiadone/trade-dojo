@@ -1,0 +1,6 @@
+{
+  "git": {
+    "excludeCoAuthoredBy": true,
+    "commitStyle": "conventional"
+  }
+}

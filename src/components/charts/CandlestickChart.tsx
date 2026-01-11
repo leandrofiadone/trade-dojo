@@ -23,7 +23,7 @@ import {
 } from '../../lib/priceHistory';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { TrendingUp, TrendingDown, Maximize2, RefreshCw, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Maximize2, Minimize2, RefreshCw, Info } from 'lucide-react';
 
 interface CandlestickChartProps {
   data: CandlestickData[];
@@ -51,6 +51,7 @@ export function CandlestickChart({
   isLoading = false
 }: CandlestickChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const fullscreenContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const candlestickSeriesRef = useRef<any>(null);
   const volumeSeriesRef = useRef<any>(null);
@@ -80,6 +81,40 @@ export function CandlestickChart({
   });
 
   const [showInfo, setShowInfo] = useState(false);
+
+  // Fullscreen functionality
+  const handleFullscreen = async () => {
+    const container = fullscreenContainerRef.current;
+    if (!container) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        // Enter fullscreen
+        await container.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        // Exit fullscreen
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (err) {
+      console.error('Error toggling fullscreen:', err);
+      // Fallback: use pseudo-fullscreen with fixed positioning
+      setIsFullscreen(!isFullscreen);
+    }
+  };
+
+  // Listen to fullscreen changes (ESC key, etc)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   // Create chart once on mount
   useEffect(() => {
@@ -311,10 +346,6 @@ export function CandlestickChart({
     }
   };
 
-  const handleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-  };
-
   const timeframes: Timeframe[] = ['1m', '5m', '15m', '1h', '4h', '1d'];
 
   const isPositive = priceChange24h >= 0;
@@ -358,8 +389,9 @@ export function CandlestickChart({
   }
 
   return (
-    <Card className={isFullscreen ? 'fixed inset-4 z-50' : ''}>
-      <CardHeader>
+    <div ref={fullscreenContainerRef}>
+      <Card className={`${isFullscreen ? 'fixed inset-0 z-50 rounded-none max-h-screen overflow-y-auto' : ''}`}>
+        <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-4">
           {/* Asset info */}
           <div>
@@ -399,8 +431,13 @@ export function CandlestickChart({
               variant="ghost"
               size="sm"
               className="!p-2"
+              title={isFullscreen ? "Salir de pantalla completa (ESC)" : "Pantalla completa"}
             >
-              <Maximize2 className="w-4 h-4" />
+              {isFullscreen ? (
+                <Minimize2 className="w-4 h-4" />
+              ) : (
+                <Maximize2 className="w-4 h-4" />
+              )}
             </Button>
           </div>
         </div>
@@ -408,7 +445,11 @@ export function CandlestickChart({
 
       {/* Chart */}
       <div className="px-6 relative">
-        <div ref={chartContainerRef} className="w-full" style={{ height: '400px' }} />
+        <div
+          ref={chartContainerRef}
+          className="w-full"
+          style={{ height: isFullscreen ? '70vh' : '400px' }}
+        />
         {isLoading && (
           <div className="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center">
             <div className="flex items-center space-x-2">
@@ -621,5 +662,6 @@ export function CandlestickChart({
         </div>
       </div>
     </Card>
+    </div>
   );
 }

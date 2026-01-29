@@ -211,49 +211,49 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between mb-2">
-          <CardTitle>📊 Market Prices</CardTitle>
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between mb-1.5">
+          <CardTitle className="text-base">📊 Market Prices</CardTitle>
+          <div className="flex items-center space-x-1.5">
             {showSignals && (
-              <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                🔄 {getRefreshInterval()}s
+              <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                🔄{getRefreshInterval()}s
               </span>
             )}
-            <span className="text-xs text-gray-500">
-              Updated {formatRelativeTime(lastUpdate)}
+            <span className="text-[10px] text-gray-500">
+              {formatRelativeTime(lastUpdate)}
             </span>
             <Button
               onClick={handleRefresh}
               variant="ghost"
               size="sm"
               loading={refreshing}
-              className="!p-2"
+              className="!p-1"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
 
-        {/* Signals Toggle */}
-        <div className="pt-2 border-t border-gray-200">
+        {/* Signals Toggle - Compacto */}
+        <div className="pt-1.5 border-t border-gray-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Target className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-gray-700">Señales con Indicadores</span>
-              {loadingSignals && <RefreshCw className="w-3 h-3 animate-spin text-blue-600" />}
+            <div className="flex items-center space-x-1.5">
+              <Target className="w-3.5 h-3.5 text-blue-600" />
+              <span className="text-xs font-medium text-gray-700">Señales</span>
+              {loadingSignals && <RefreshCw className="w-2.5 h-2.5 animate-spin text-blue-600" />}
             </div>
             <button
               onClick={() => setShowSignals(!showSignals)}
               className={`
-                relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                relative inline-flex h-5 w-9 items-center rounded-full transition-colors
                 ${showSignals ? 'bg-blue-600' : 'bg-gray-300'}
               `}
               aria-label="Toggle signals"
             >
               <span
                 className={`
-                  inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                  ${showSignals ? 'translate-x-6' : 'translate-x-1'}
+                  inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform
+                  ${showSignals ? 'translate-x-5' : 'translate-x-0.5'}
                 `}
               />
             </button>
@@ -261,18 +261,18 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
 
           {/* Timeframe Selector */}
           {showSignals && (
-            <div className="mt-2 space-y-1">
+            <div className="mt-1.5 space-y-0.5">
               <div className="flex items-center space-x-1">
-                <Clock className="w-3 h-3 text-gray-500" />
-                <span className="text-xs font-medium text-gray-600">Timeframe:</span>
+                <Clock className="w-2.5 h-2.5 text-gray-500" />
+                <span className="text-[10px] font-medium text-gray-600">TF:</span>
               </div>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-0.5">
                 {timeframes.map((tf) => (
                   <button
                     key={tf}
                     onClick={() => setSignalTimeframe(tf)}
                     className={`
-                      px-2 py-1 text-xs font-medium rounded transition-colors
+                      px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors
                       ${signalTimeframe === tf
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
@@ -282,11 +282,11 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                💡 Sistema PROFESIONAL: 19 INDICADORES • RSI • Stoch • CCI • Williams%R • ROC • MFI • EMA • MACD • SAR • Supertrend • Estructura • BB • OBV • VWAP • Divergencias • Patrones
+              <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
+                💡 19 INDICADORES: RSI • Stoch • CCI • Williams%R • ROC • MFI • EMA • MACD • SAR • Supertrend • BB • OBV • VWAP
               </p>
-              <p className="text-xs text-green-700 font-medium mt-0.5">
-                📊 {candleDataMap.size}/{Math.min(12, assets.length)} assets • Q{'>'}45 recomendado • Auto-refresh cada {getRefreshInterval()}s
+              <p className="text-[10px] text-green-700 font-medium mt-0.5">
+                📊 {candleDataMap.size}/{Math.min(12, assets.length)} assets • Q{'>'}45 OK • Refresh {getRefreshInterval()}s
               </p>
             </div>
           )}
@@ -294,7 +294,7 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
       </CardHeader>
 
       <CardContent className="!p-0">
-        <div className="divide-y divide-gray-200">
+        <div className={`divide-y divide-gray-200 overflow-y-auto scroll-smooth overflow-x-hidden ${showSignals ? 'min-h-[55vh] max-h-[75vh]' : 'min-h-[60vh] max-h-[75vh]'}`}>
           {assets.map((asset) => {
             const isPositive = asset.price_change_percentage_24h >= 0;
             const isSelected = asset.id === selectedAssetId;
@@ -315,33 +315,38 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
                 key={asset.id}
                 onClick={() => handleAssetClick(asset)}
                 className={`
-                  flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer transition-colors
+                  flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors
+                  ${showSignals ? 'p-2' : 'p-3'}
                   ${isSelected ? 'bg-blue-50 border-l-4 border-blue-600' : ''}
                 `}
               >
                 {/* Left: Asset Info */}
-                <div className="flex items-center space-x-3 flex-1">
+                <div className={`flex items-center flex-1 ${showSignals ? 'space-x-1.5' : 'space-x-2'}`}>
                   {asset.image && (
                     <img
                       src={asset.image}
                       alt={asset.name}
-                      className="w-8 h-8 rounded-full"
+                      className={showSignals ? 'w-5 h-5 rounded-full' : 'w-6 h-6 rounded-full'}
                     />
                   )}
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900">{asset.name}</p>
-                    <p className="text-sm text-gray-500">{asset.symbol}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-semibold text-gray-900 truncate ${showSignals ? 'text-xs' : 'text-sm'}`}>
+                      {asset.name}
+                    </p>
+                    <p className={`text-gray-500 ${showSignals ? 'text-[10px]' : 'text-xs'}`}>
+                      {asset.symbol}
+                    </p>
 
-                    {/* Signal Badge with Gradient + Quality Score */}
+                    {/* Signal Badge with Gradient + Quality Score - Compacto */}
                     {signal && (
-                      <div className="mt-1.5 space-y-1">
+                      <div className="mt-1 space-y-0.5">
                         <div className="flex items-center space-x-1">
                           <span
                             className={`
-                              inline-block px-2 py-0.5 rounded-full text-xs font-bold
+                              inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold
                               ${signal.bgGradient} ${signal.color}
                               ${signal.type === 'extreme-buy' || signal.type === 'extreme-sell' || signal.type === 'strong-buy' || signal.type === 'strong-sell'
-                                ? 'shadow-md ring-2 ring-offset-1 ' +
+                                ? 'shadow-sm ring-1 ring-offset-0 ' +
                                   (signal.type === 'extreme-buy' || signal.type === 'strong-buy' ? 'ring-green-500' : 'ring-red-500')
                                 : 'shadow-sm'}
                             `}
@@ -349,10 +354,10 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
                           >
                             {signal.emoji} {signal.label}
                           </span>
-                          {/* Quality Score Badge */}
+                          {/* Quality Score Badge - Más pequeño */}
                           <span
                             className={`
-                              px-1.5 py-0.5 rounded text-xs font-bold
+                              px-1 py-0.5 rounded text-[9px] font-bold
                               ${signal.qualityScore >= 80
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                 : signal.qualityScore >= 60
@@ -367,21 +372,10 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
                             Q{signal.qualityScore}
                           </span>
                         </div>
-                        {/* Confirmations count */}
-                        <div className="text-xs text-gray-600">
-                          ✓ {signal.confirmations.length} confirmación{signal.confirmations.length !== 1 ? 'es' : ''}
-                          {signal.warnings.length > 0 && ` • ⚠️ ${signal.warnings.length} advertencia${signal.warnings.length !== 1 ? 's' : ''}`}
-                        </div>
-                        {/* Strength Bar */}
-                        <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${
-                              signal.strength > 50
-                                ? 'bg-gradient-to-r from-green-400 to-green-600'
-                                : 'bg-gradient-to-r from-red-600 to-red-400'
-                            }`}
-                            style={{ width: `${Math.abs(signal.strength - 50) * 2}%` }}
-                          />
+                        {/* Confirmations count - Más compacto */}
+                        <div className="text-[9px] text-gray-600">
+                          ✓{signal.confirmations.length}
+                          {signal.warnings.length > 0 && ` • ⚠️${signal.warnings.length}`}
                         </div>
                       </div>
                     )}
@@ -389,17 +383,17 @@ export function MarketList({ onSelectAsset, selectedAssetId }: MarketListProps) 
                 </div>
 
                 {/* Right: Price Info */}
-                <div className="text-right">
-                  <p className="font-semibold text-gray-900">
+                <div className={`text-right ${showSignals ? 'ml-1' : 'ml-2'}`}>
+                  <p className={`font-semibold text-gray-900 ${showSignals ? 'text-xs' : 'text-sm'}`}>
                     {formatCurrency(asset.current_price)}
                   </p>
-                  <div className="flex items-center justify-end space-x-1">
+                  <div className="flex items-center justify-end space-x-0.5">
                     {isPositive ? (
-                      <TrendingUp className="w-4 h-4 text-green-600" />
+                      <TrendingUp className={showSignals ? 'w-2.5 h-2.5 text-green-600' : 'w-3 h-3 text-green-600'} />
                     ) : (
-                      <TrendingDown className="w-4 h-4 text-red-600" />
+                      <TrendingDown className={showSignals ? 'w-2.5 h-2.5 text-red-600' : 'w-3 h-3 text-red-600'} />
                     )}
-                    <span className={isPositive ? 'profit text-sm' : 'loss text-sm'}>
+                    <span className={`${isPositive ? 'profit' : 'loss'} ${showSignals ? 'text-[10px]' : 'text-xs'}`}>
                       {formatPercentage(asset.price_change_percentage_24h)}
                     </span>
                   </div>

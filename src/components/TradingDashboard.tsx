@@ -710,9 +710,9 @@ export function TradingDashboard() {
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Desktop: Grid de 3 columnas, Mobile: Una vista a la vez */}
-              <div className={isMobile ? 'space-y-2' : 'grid grid-cols-1 lg:grid-cols-3 gap-2'}>
-              {/* Left Column: Market List - Sticky en desktop */}
+              {/* Desktop: Grid optimizado - Market List más compacto */}
+              <div className={isMobile ? 'space-y-2' : 'grid grid-cols-1 lg:grid-cols-5 gap-2'}>
+              {/* Left Column: Market List - Sticky en desktop, más estrecho */}
               {(!isMobile || mobileView === 'market') && (
                 <div className="lg:col-span-1">
                   <div className="lg:sticky lg:top-8">
@@ -726,7 +726,7 @@ export function TradingDashboard() {
 
               {/* Middle Column: Trading Form */}
               {(!isMobile || mobileView === 'trade') && (
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-2">
                   <TradingForm
                     assets={assets}
                     portfolio={portfolio}
@@ -738,7 +738,7 @@ export function TradingDashboard() {
 
               {/* Right Column: Portfolio - Sticky en desktop */}
               {(!isMobile || mobileView === 'portfolio') && (
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-2">
                   <div className="lg:sticky lg:top-8">
                     <Portfolio portfolio={portfolio} />
                   </div>
@@ -766,9 +766,9 @@ export function TradingDashboard() {
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Desktop: Grid de 3 columnas bien balanceado */}
-              <div className={isMobile ? 'space-y-2' : 'grid grid-cols-1 lg:grid-cols-3 gap-2'}>
-                {/* Columna 1: Market List */}
+              {/* Desktop: Grid optimizado - Market List más compacto */}
+              <div className={isMobile ? 'space-y-2' : 'grid grid-cols-1 lg:grid-cols-5 gap-2'}>
+                {/* Columna 1: Market List - Más estrecho */}
                 {(!isMobile || mobileView === 'market') && (
                   <div className="lg:col-span-1">
                     <MarketList
@@ -780,7 +780,7 @@ export function TradingDashboard() {
 
                 {/* Columna 2: Gráfico + Análisis */}
                 {(!isMobile || mobileView === 'chart' || mobileView === 'signals') && selectedAsset && candlestickData.length > 0 && (
-                  <div className="lg:col-span-1">
+                  <div className="lg:col-span-2">
                     <div className="space-y-2">
                       {/* Gráfico */}
                       <div>
@@ -811,7 +811,7 @@ export function TradingDashboard() {
 
                 {/* Columna 3: Form + Positions */}
                 {(!isMobile || mobileView === 'trade' || mobileView === 'portfolio') && (
-                  <div className="lg:col-span-1">
+                  <div className="lg:col-span-2">
                     <div className="space-y-2">
                       {/* Futures Trading Form */}
                       {(!isMobile || mobileView === 'trade') && (

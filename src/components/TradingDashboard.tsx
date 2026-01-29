@@ -766,26 +766,24 @@ export function TradingDashboard() {
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Desktop: Grid de 3 columnas, Mobile: Una vista a la vez */}
+              {/* Desktop: Grid de 3 columnas bien balanceado */}
               <div className={isMobile ? 'space-y-2' : 'grid grid-cols-1 lg:grid-cols-3 gap-2'}>
-                {/* Left Column: Market List - Sticky en desktop */}
+                {/* Columna 1: Market List */}
                 {(!isMobile || mobileView === 'market') && (
                   <div className="lg:col-span-1">
-                    <div className="lg:sticky lg:top-8 lg:max-h-[calc(100vh-100px)] overflow-y-auto">
-                      <MarketList
-                        onSelectAsset={handleAssetSelect}
-                        selectedAssetId={selectedAsset?.id}
-                      />
-                    </div>
+                    <MarketList
+                      onSelectAsset={handleAssetSelect}
+                      selectedAssetId={selectedAsset?.id}
+                    />
                   </div>
                 )}
 
-                {/* Middle Column: Gráfico y Análisis apilados */}
-                {(!isMobile || mobileView === 'chart' || mobileView === 'signals') && selectedAsset && (
-                  <div className="lg:col-span-1 flex flex-col gap-2">
-                    {/* Gráfico */}
-                    {candlestickData.length > 0 && (
-                      <div className="flex-shrink-0">
+                {/* Columna 2: Gráfico + Análisis */}
+                {(!isMobile || mobileView === 'chart' || mobileView === 'signals') && selectedAsset && candlestickData.length > 0 && (
+                  <div className="lg:col-span-1">
+                    <div className="space-y-2">
+                      {/* Gráfico */}
+                      <div>
                         <CandlestickChart
                           data={candlestickData}
                           volumeData={volumeData}
@@ -798,45 +796,45 @@ export function TradingDashboard() {
                           isLoading={chartLoading}
                         />
                       </div>
-                    )}
 
-                    {/* Análisis Técnico */}
-                    {candlestickData.length > 0 && (
-                      <div className="flex-shrink-0 max-h-[400px] overflow-y-auto">
+                      {/* Análisis Técnico */}
+                      <div>
                         <AdvancedTradingSignals
                           candleData={candlestickData}
                           volumeData={volumeData}
                           assetName={selectedAsset.name}
                         />
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
 
-                {/* Right Column: Futures Trading Form y Posiciones apiladas */}
+                {/* Columna 3: Form + Positions */}
                 {(!isMobile || mobileView === 'trade' || mobileView === 'portfolio') && (
-                  <div className="lg:col-span-1 flex flex-col gap-2">
-                    {/* Futures Trading Form */}
-                    {(!isMobile || mobileView === 'trade') && (
-                      <div className="flex-shrink-0">
-                        <FuturesTradingForm
-                          assets={assets}
-                          selectedAsset={selectedAsset}
-                          availableBalance={portfolio.balance}
-                          onOpenPosition={handleOpenPosition}
-                        />
-                      </div>
-                    )}
+                  <div className="lg:col-span-1">
+                    <div className="space-y-2">
+                      {/* Futures Trading Form */}
+                      {(!isMobile || mobileView === 'trade') && (
+                        <div>
+                          <FuturesTradingForm
+                            assets={assets}
+                            selectedAsset={selectedAsset}
+                            availableBalance={portfolio.balance}
+                            onOpenPosition={handleOpenPosition}
+                          />
+                        </div>
+                      )}
 
-                    {/* Futures Positions */}
-                    {(!isMobile || mobileView === 'portfolio') && (
-                      <div className="flex-shrink-0 lg:sticky lg:top-8">
-                        <FuturesPositionList
-                          positions={futuresPositions.filter(p => p.status === 'OPEN')}
-                          onClosePosition={handleClosePosition}
-                        />
-                      </div>
-                    )}
+                      {/* Futures Positions */}
+                      {(!isMobile || mobileView === 'portfolio') && (
+                        <div>
+                          <FuturesPositionList
+                            positions={futuresPositions.filter(p => p.status === 'OPEN')}
+                            onClosePosition={handleClosePosition}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

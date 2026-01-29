@@ -244,64 +244,77 @@ export function calculateQuickSignalFromCandles(
     return calculateQuickSignal(asset);
   }
 
-  const prices = candleData.map(c => c.close);
-  const currentPrice = prices[prices.length - 1];
-  const prevPrice = prices[prices.length - 2] || currentPrice;
+  try {
+    const prices = candleData.map(c => c.close);
+    const currentPrice = prices[prices.length - 1];
+    const prevPrice = prices[prices.length - 2] || currentPrice;
 
-  // ==================== CALCULAR TODOS LOS 19 INDICADORES ====================
+    // ==================== CALCULAR TODOS LOS 19 INDICADORES ====================
+    // Con manejo de errores para cada indicador
 
-  // Momentum Indicators
-  const rsi = calculateRSI(prices, 14);
-  const stochastic = calculateStochastic(candleData, 14, 3);
-  const cci = calculateCCI(candleData, 20);
-  const williamsR = calculateWilliamsR(candleData, 14);
-  const roc = calculateROC(prices, 12);
-  const mfi = calculateMFI(candleData, 14);
+    let rsi = 50, stochastic = { k: 50, d: 50, signal: 'neutral' as const };
+    let cci = { cci: 0, signal: 'neutral' as const };
+    let williamsR = { williamsR: -50, signal: 'neutral' as const };
+    let roc = { roc: 0, signal: 'neutral' as const };
+    let mfi = { mfi: 50, signal: 'neutral' as const };
 
-  // Trend Indicators
-  const ema9 = calculateEMA(prices, 9);
-  const ema21 = calculateEMA(prices, 21);
-  const ema50 = prices.length >= 50 ? calculateEMA(prices, 50) : null;
-  const macd = calculateMACD(prices);
-  const parabolicSAR = calculateParabolicSAR(candleData);
-  const supertrend = calculateSupertrend(candleData);
-  const marketStructure = analyzeMarketStructure(candleData, 20);
+    let ema9 = currentPrice, ema21 = currentPrice, ema50: number | null = null;
+    let macd = { macd: 0, signal: 0, histogram: 0 };
+    let parabolicSAR = { sar: currentPrice, trend: 'bullish' as const, signal: 'hold' as const };
+    let supertrend = { supertrend: currentPrice, trend: 'bullish' as const, signal: 'hold' as const };
+    let marketStructure = { structure: 'ranging' as const, higherHighs: 0, lowerLows: 0, swingHighs: [], swingLows: [], signal: 'neutral' as const };
 
-  // Volatility Indicators
-  const bollinger = calculateBollingerBands(prices, 20, 2);
+    let bollinger = { upper: currentPrice, middle: currentPrice, lower: currentPrice, bandwidth: 0, percentB: 0.5 };
+    let obv = { obv: 0, trend: 'neutral' as const, signal: 'neutral' as const };
+    let vwap = { vwap: currentPrice, signal: 'neutral' as const };
+    let candlePattern = { pattern: 'none' as const, signal: 'neutral' as const, confidence: 0, explanation: '' };
 
-  // Volume Indicators
-  const obv = calculateOBV(candleData);
-  const vwap = calculateVWAP(candleData);
+    // Calcular indicadores con try-catch individual
+    try { rsi = calculateRSI(prices, 14); } catch (e) { console.warn('RSI error:', e); }
+    try { stochastic = calculateStochastic(candleData, 14, 3); } catch (e) { console.warn('Stochastic error:', e); }
+    try { cci = calculateCCI(candleData, 20); } catch (e) { console.warn('CCI error:', e); }
+    try { williamsR = calculateWilliamsR(candleData, 14); } catch (e) { console.warn('WilliamsR error:', e); }
+    try { roc = calculateROC(prices, 12); } catch (e) { console.warn('ROC error:', e); }
+    try { mfi = calculateMFI(candleData, 14); } catch (e) { console.warn('MFI error:', e); }
 
-  // Pattern Recognition
-  const candlePattern = detectCandlePatterns(candleData);
+    try { ema9 = calculateEMA(prices, 9); } catch (e) { console.warn('EMA9 error:', e); }
+    try { ema21 = calculateEMA(prices, 21); } catch (e) { console.warn('EMA21 error:', e); }
+    try { ema50 = prices.length >= 50 ? calculateEMA(prices, 50) : null; } catch (e) { console.warn('EMA50 error:', e); }
+    try { macd = calculateMACD(prices); } catch (e) { console.warn('MACD error:', e); }
+    try { parabolicSAR = calculateParabolicSAR(candleData); } catch (e) { console.warn('SAR error:', e); }
+    try { supertrend = calculateSupertrend(candleData); } catch (e) { console.warn('Supertrend error:', e); }
+    try { marketStructure = analyzeMarketStructure(candleData, 20); } catch (e) { console.warn('MarketStructure error:', e); }
 
-  // Volume analysis (básico)
-  const recentCandles = candleData.slice(-10);
-  const avgVolume = recentCandles.slice(0, -1).reduce((sum, c) => sum + (c.volume || 0), 0) / 9;
-  const currentVolume = recentCandles[recentCandles.length - 1].volume || 0;
-  const volumeRatio = avgVolume > 0 ? currentVolume / avgVolume : 1;
+    try { bollinger = calculateBollingerBands(prices, 20, 2); } catch (e) { console.warn('Bollinger error:', e); }
+    try { obv = calculateOBV(candleData); } catch (e) { console.warn('OBV error:', e); }
+    try { vwap = calculateVWAP(candleData); } catch (e) { console.warn('VWAP error:', e); }
+    try { candlePattern = detectCandlePatterns(candleData); } catch (e) { console.warn('Pattern error:', e); }
 
-  // RSI Divergence detection
-  const recentPrices = prices.slice(-10);
-  const recentRSIs = recentPrices.map((_, i) => calculateRSI(prices.slice(0, prices.length - 10 + i + 1), 14));
-  const priceTrend = recentPrices[recentPrices.length - 1] - recentPrices[0];
-  const rsiTrend = recentRSIs[recentRSIs.length - 1] - recentRSIs[0];
-  const bullishDivergence = priceTrend < 0 && rsiTrend > 0 && rsi < 40;
-  const bearishDivergence = priceTrend > 0 && rsiTrend < 0 && rsi > 60;
+    // Volume analysis (básico)
+    const recentCandles = candleData.slice(-10);
+    const avgVolume = recentCandles.slice(0, -1).reduce((sum, c) => sum + (c.volume || 0), 0) / 9;
+    const currentVolume = recentCandles[recentCandles.length - 1].volume || 0;
+    const volumeRatio = avgVolume > 0 ? currentVolume / avgVolume : 1;
 
-  // Price momentum
-  const priceChangePercent = ((currentPrice - prevPrice) / prevPrice) * 100;
-  const priceChange5 = ((currentPrice - prices[prices.length - 6]) / prices[prices.length - 6]) * 100;
+    // RSI Divergence detection
+    const recentPrices = prices.slice(-10);
+    const recentRSIs = recentPrices.map((_, i) => calculateRSI(prices.slice(0, prices.length - 10 + i + 1), 14));
+    const priceTrend = recentPrices[recentPrices.length - 1] - recentPrices[0];
+    const rsiTrend = recentRSIs[recentRSIs.length - 1] - recentRSIs[0];
+    const bullishDivergence = priceTrend < 0 && rsiTrend > 0 && rsi < 40;
+    const bearishDivergence = priceTrend > 0 && rsiTrend < 0 && rsi > 60;
 
-  // Confirmations and Warnings tracking
-  const confirmations: string[] = [];
-  const warnings: string[] = [];
+    // Price momentum
+    const priceChangePercent = ((currentPrice - prevPrice) / prevPrice) * 100;
+    const priceChange5 = ((currentPrice - prices[prices.length - 6]) / prices[prices.length - 6]) * 100;
 
-  // ==================== SISTEMA DE CONFIRMACIÓN MÚLTIPLE (19 INDICADORES) ====================
-  let bullishConfirmations = 0;
-  let bearishConfirmations = 0;
+    // Confirmations and Warnings tracking
+    const confirmations: string[] = [];
+    const warnings: string[] = [];
+
+    // ==================== SISTEMA DE CONFIRMACIÓN MÚLTIPLE (19 INDICADORES) ====================
+    let bullishConfirmations = 0;
+    let bearishConfirmations = 0;
 
   // ========== MOMENTUM INDICATORS (6 indicadores) ==========
 
@@ -731,6 +744,12 @@ export function calculateQuickSignalFromCandles(
     confirmations,
     warnings: [...warnings, 'Insuficientes confirmaciones']
   };
+
+  } catch (error) {
+    // Si hay algún error en el cálculo, devolver señal básica
+    console.error('Error calculating signals:', error);
+    return calculateQuickSignal(asset);
+  }
 }
 
 /**

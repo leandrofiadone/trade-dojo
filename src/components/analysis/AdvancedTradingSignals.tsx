@@ -29,6 +29,20 @@ export function AdvancedTradingSignals({
 }: AdvancedTradingSignalsProps) {
   const signals = generateAdvancedTradingSignals(candleData, volumeData);
 
+  // Helper para obtener un indicador por nombre del array
+  const getIndicator = (name: string) => {
+    if (Array.isArray(signals.indicators)) {
+      return signals.indicators.find(ind => ind.name.toLowerCase().includes(name.toLowerCase()));
+    }
+    return undefined;
+  };
+
+  // Extraer indicadores principales
+  const rsiIndicator = getIndicator('rsi');
+  const macdIndicator = getIndicator('macd');
+  const stochasticIndicator = getIndicator('stochastic') || getIndicator('stoch');
+  const williamsIndicator = getIndicator('williams');
+
   // Configuración visual según tipo de señal
   const signalConfig: Record<SignalType, {
     label: string;
@@ -227,44 +241,54 @@ export function AdvancedTradingSignals({
         )}
 
         {/* Indicadores Técnicos - Resumen Compacto */}
-        <div className="bg-gray-50 p-1.5 rounded border border-gray-200">
-          <p className="text-[8px] font-bold text-gray-900 mb-1">📈 Indicadores Técnicos</p>
-          <div className="grid grid-cols-2 gap-1 text-[8px]">
-            <div className="flex justify-between">
-              <span className="text-gray-600">RSI:</span>
-              <span className={`font-bold ${
-                signals.indicators.rsi.value > 70 ? 'text-red-600' :
-                signals.indicators.rsi.value < 30 ? 'text-green-600' :
-                'text-gray-700'
-              }`}>
-                {signals.indicators.rsi.value.toFixed(1)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">MACD:</span>
-              <span className={`font-bold ${
-                signals.indicators.macd.signal === 'buy' ? 'text-green-600' :
-                signals.indicators.macd.signal === 'sell' ? 'text-red-600' :
-                'text-gray-600'
-              }`}>
-                {signals.indicators.macd.signal === 'buy' ? '↑' :
-                 signals.indicators.macd.signal === 'sell' ? '↓' : '→'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Stoch:</span>
-              <span className="font-bold text-gray-700">
-                {signals.indicators.stochastic.value.toFixed(1)}
-              </span>
-            </div>
-            <div className="flex justify-between col-span-2">
-              <span className="text-gray-600">Williams:</span>
-              <span className="font-bold text-gray-700">
-                {signals.indicators.williamsR.value.toFixed(1)}
-              </span>
+        {(rsiIndicator || macdIndicator || stochasticIndicator || williamsIndicator) && (
+          <div className="bg-gray-50 p-1.5 rounded border border-gray-200">
+            <p className="text-[8px] font-bold text-gray-900 mb-1">📈 Indicadores Técnicos</p>
+            <div className="grid grid-cols-2 gap-1 text-[8px]">
+              {rsiIndicator && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">RSI:</span>
+                  <span className={`font-bold ${
+                    parseFloat(rsiIndicator.value) > 70 ? 'text-red-600' :
+                    parseFloat(rsiIndicator.value) < 30 ? 'text-green-600' :
+                    'text-gray-700'
+                  }`}>
+                    {rsiIndicator.value}
+                  </span>
+                </div>
+              )}
+              {macdIndicator && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">MACD:</span>
+                  <span className={`font-bold ${
+                    macdIndicator.signal === 'buy' ? 'text-green-600' :
+                    macdIndicator.signal === 'sell' ? 'text-red-600' :
+                    'text-gray-600'
+                  }`}>
+                    {macdIndicator.signal === 'buy' ? '↑' :
+                     macdIndicator.signal === 'sell' ? '↓' : '→'}
+                  </span>
+                </div>
+              )}
+              {stochasticIndicator && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Stoch:</span>
+                  <span className="font-bold text-gray-700">
+                    {stochasticIndicator.value}
+                  </span>
+                </div>
+              )}
+              {williamsIndicator && (
+                <div className="flex justify-between col-span-2">
+                  <span className="text-gray-600">Williams:</span>
+                  <span className="font-bold text-gray-700">
+                    {williamsIndicator.value}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
 
         {/* Disclaimer Educativo */}
         <div className="flex items-start gap-1 bg-orange-50 border border-orange-200 rounded p-1.5">

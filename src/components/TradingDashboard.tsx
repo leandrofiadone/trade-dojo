@@ -79,7 +79,7 @@ export function TradingDashboard() {
   const [selectedAsset, setSelectedAsset] = useState<Asset | undefined>();
   const [loading, setLoading] = useState(true);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [activeTab, setActiveTab] = useState<'spot' | 'futures'>('spot');
+  const [activeTab, setActiveTab] = useState<'spot' | 'futures'>('futures');
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>('5m');
 
   // Mobile responsive states
@@ -104,6 +104,15 @@ export function TradingDashboard() {
     if (tf.includes('h')) return value * 60;
     if (tf.includes('d')) return value * 1440;
     return 5; // default to 5 minutes
+  };
+
+  // Handle asset selection - switch to trade view on mobile
+  const handleAssetSelect = (asset: Asset) => {
+    setSelectedAsset(asset);
+    // En mobile, cambiar automáticamente a la vista de trading
+    if (isMobile) {
+      setMobileView('trade');
+    }
   };
 
   // Price history for candlestick chart
@@ -656,75 +665,37 @@ export function TradingDashboard() {
           </div>
         )}
 
-        {/* Chart & Analysis Section - Desktop: 2 columnas lado a lado, Mobile: tabs separadas */}
-        {selectedAsset && (
+        {/* Mobile Chart & Analysis - Solo para mobile en tabs separadas */}
+        {isMobile && selectedAsset && (
           <div className="mb-2">
-            {/* Desktop: Grid de 2 columnas (Gráfico + Análisis) */}
-            {!isMobile && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-                {/* Gráfico - 2 columnas */}
-                <div className="lg:col-span-2">
-                  <CandlestickChart
-                    data={candlestickData}
-                    volumeData={volumeData}
-                    asset={selectedAsset.name}
-                    currentPrice={selectedAsset.current_price}
-                    priceChange24h={selectedAsset.price_change_percentage_24h}
-                    currentTimeframe={selectedTimeframe}
-                    onTimeframeChange={handleTimeframeChange}
-                    onRefresh={refreshChart}
-                    isLoading={chartLoading}
-                  />
-                </div>
-
-                {/* Análisis Técnico - 1 columna con scroll */}
-                {candlestickData.length > 0 && (
-                  <div className="lg:col-span-1">
-                    <div className="max-h-[500px] overflow-y-auto sticky top-8">
-                      <AdvancedTradingSignals
-                        candleData={candlestickData}
-                        volumeData={volumeData}
-                        assetName={selectedAsset.name}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+            {mobileView === 'chart' && (
+              <CandlestickChart
+                data={candlestickData}
+                volumeData={volumeData}
+                asset={selectedAsset.name}
+                currentPrice={selectedAsset.current_price}
+                priceChange24h={selectedAsset.price_change_percentage_24h}
+                currentTimeframe={selectedTimeframe}
+                onTimeframeChange={handleTimeframeChange}
+                onRefresh={refreshChart}
+                isLoading={chartLoading}
+              />
             )}
 
-            {/* Mobile: Vistas separadas según tab */}
-            {isMobile && (
-              <>
-                {mobileView === 'chart' && (
-                  <CandlestickChart
-                    data={candlestickData}
-                    volumeData={volumeData}
-                    asset={selectedAsset.name}
-                    currentPrice={selectedAsset.current_price}
-                    priceChange24h={selectedAsset.price_change_percentage_24h}
-                    currentTimeframe={selectedTimeframe}
-                    onTimeframeChange={handleTimeframeChange}
-                    onRefresh={refreshChart}
-                    isLoading={chartLoading}
-                  />
-                )}
-
-                {mobileView === 'signals' && candlestickData.length > 0 && (
-                  <AdvancedTradingSignals
-                    candleData={candlestickData}
-                    volumeData={volumeData}
-                    assetName={selectedAsset.name}
-                  />
-                )}
-              </>
+            {mobileView === 'signals' && candlestickData.length > 0 && (
+              <AdvancedTradingSignals
+                candleData={candlestickData}
+                volumeData={volumeData}
+                assetName={selectedAsset.name}
+              />
             )}
           </div>
         )}
 
-        {!selectedAsset && (!isMobile || mobileView === 'chart' || mobileView === 'signals') && (
+        {!selectedAsset && isMobile && (mobileView === 'chart' || mobileView === 'signals') && (
           <div className="mb-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200 text-center">
             <p className="text-gray-600 text-xs font-medium">
-              {!isMobile || mobileView === 'chart' ? '📊 Selecciona una criptomoneda para ver el gráfico y análisis' : '🎯 Selecciona una criptomoneda para ver señales'}
+              {mobileView === 'chart' ? '📊 Selecciona una criptomoneda para ver el gráfico' : '🎯 Selecciona una criptomoneda para ver señales'}
             </p>
           </div>
         )}
@@ -746,7 +717,7 @@ export function TradingDashboard() {
                 <div className="lg:col-span-1">
                   <div className="lg:sticky lg:top-8">
                     <MarketList
-                      onSelectAsset={setSelectedAsset}
+                      onSelectAsset={handleAssetSelect}
                       selectedAssetId={selectedAsset?.id}
                     />
                   </div>
@@ -795,44 +766,78 @@ export function TradingDashboard() {
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Desktop: Grid de 3 columnas, Mobile: Una vista a la vez */}
-              <div className={isMobile ? 'space-y-2' : 'grid grid-cols-1 lg:grid-cols-3 gap-2'}>
-              {/* Left Column: Market List - Sticky en desktop */}
-              {(!isMobile || mobileView === 'market') && (
-                <div className="lg:col-span-1">
-                  <div className="lg:sticky lg:top-8">
-                    <MarketList
-                      onSelectAsset={setSelectedAsset}
-                      selectedAssetId={selectedAsset?.id}
-                    />
+              {/* Desktop: Grid de 4 columnas optimizado - TODO visible sin scroll */}
+              <div className={isMobile ? 'space-y-2' : 'grid grid-cols-1 lg:grid-cols-4 gap-2'}>
+                {/* Column 1: Market List */}
+                {(!isMobile || mobileView === 'market') && (
+                  <div className="lg:col-span-1">
+                    <div className="lg:sticky lg:top-8 lg:max-h-[calc(100vh-100px)] overflow-y-auto">
+                      <MarketList
+                        onSelectAsset={handleAssetSelect}
+                        selectedAssetId={selectedAsset?.id}
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Middle Column: Futures Trading Form */}
-              {(!isMobile || mobileView === 'trade') && (
-                <div className="lg:col-span-1">
-                  <FuturesTradingForm
-                    assets={assets}
-                    selectedAsset={selectedAsset}
-                    availableBalance={portfolio.balance}
-                    onOpenPosition={handleOpenPosition}
-                  />
-                </div>
-              )}
+                {/* Column 2-3: Gráfico y Análisis Técnico apilados */}
+                {(!isMobile || mobileView === 'chart' || mobileView === 'signals') && selectedAsset && (
+                  <div className="lg:col-span-2 space-y-2">
+                    {/* Gráfico más compacto */}
+                    {candlestickData.length > 0 && (
+                      <div className="h-[280px]">
+                        <CandlestickChart
+                          data={candlestickData}
+                          volumeData={volumeData}
+                          asset={selectedAsset.name}
+                          currentPrice={selectedAsset.current_price}
+                          priceChange24h={selectedAsset.price_change_percentage_24h}
+                          currentTimeframe={selectedTimeframe}
+                          onTimeframeChange={handleTimeframeChange}
+                          onRefresh={refreshChart}
+                          isLoading={chartLoading}
+                        />
+                      </div>
+                    )}
 
-              {/* Right Column: Futures Positions - Sticky en desktop */}
-              {(!isMobile || mobileView === 'portfolio') && (
-                <div className="lg:col-span-1">
-                  <div className="lg:sticky lg:top-8">
-                    <FuturesPositionList
-                      positions={futuresPositions.filter(p => p.status === 'OPEN')}
-                      onClosePosition={handleClosePosition}
-                    />
+                    {/* Análisis Técnico compacto */}
+                    {candlestickData.length > 0 && (
+                      <div className="max-h-[400px] overflow-y-auto">
+                        <AdvancedTradingSignals
+                          candleData={candlestickData}
+                          volumeData={volumeData}
+                          assetName={selectedAsset.name}
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+
+                {/* Column 4: Trading Form y Posiciones apiladas */}
+                {(!isMobile || mobileView === 'trade' || mobileView === 'portfolio') && (
+                  <div className="lg:col-span-1 space-y-2">
+                    {/* Futures Trading Form */}
+                    {(!isMobile || mobileView === 'trade') && (
+                      <FuturesTradingForm
+                        assets={assets}
+                        selectedAsset={selectedAsset}
+                        availableBalance={portfolio.balance}
+                        onOpenPosition={handleOpenPosition}
+                      />
+                    )}
+
+                    {/* Futures Positions */}
+                    {(!isMobile || mobileView === 'portfolio') && (
+                      <div className="lg:max-h-[400px] overflow-y-auto">
+                        <FuturesPositionList
+                          positions={futuresPositions.filter(p => p.status === 'OPEN')}
+                          onClosePosition={handleClosePosition}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Educational Note for Futures - Compacto */}
               {(!isMobile || mobileView === 'trade' || mobileView === 'portfolio') && (

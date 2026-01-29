@@ -41,7 +41,7 @@ export function FuturesTradingForm({
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Auto-select first asset if none selected
-  const currentAsset = selectedAsset || assets[0];
+  const currentAsset = selectedAsset || (assets.length > 0 ? assets[0] : undefined);
 
   // Reset form when asset changes
   useEffect(() => {
@@ -127,6 +127,44 @@ ${validation.warnings ? '\n' + validation.warnings.join('\n') : ''}
   const handleUseMax = () => {
     setMargin(availableBalance.toFixed(2));
   };
+
+  // Si no hay assets disponibles, mostrar mensaje
+  if (assets.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Zap className="w-5 h-5 text-yellow-500" />
+            <span>⚡ Futures Trading</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-gray-600">Cargando datos del mercado...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Si no hay asset seleccionado, mostrar mensaje
+  if (!currentAsset) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Zap className="w-5 h-5 text-yellow-500" />
+            <span>⚡ Futures Trading</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-gray-600">Selecciona una criptomoneda del listado</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

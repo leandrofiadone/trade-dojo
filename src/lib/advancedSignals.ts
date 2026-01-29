@@ -15,9 +15,22 @@ import {
   findSupportResistance,
   calculateFibonacci,
   detectCandlePatterns,
-  type SignalType,
+  calculateStochastic,
+  calculateCCI,
+  calculateWilliamsR,
+  calculateROC,
+  calculateMFI,
+  calculateParabolicSAR,
+  calculateOBV,
+  calculateVWAP,
+  calculateSupertrend,
+  analyzeMarketStructure,
+  calculateBollingerBands,
   type TradingSignal
 } from './technicalIndicators';
+
+// Re-export types
+export type { SignalType, TradingSignal } from './technicalIndicators';
 
 export function generateAdvancedTradingSignals(
   candleData: CandlestickData[],
@@ -81,6 +94,19 @@ export function generateAdvancedTradingSignals(
   const supportResistance = findSupportResistance(candleData);
   const fibonacci = calculateFibonacci(candleData);
   const candlePattern = detectCandlePatterns(candleData);
+
+  // NUEVOS INDICADORES ADICIONALES
+  const stochastic = calculateStochastic(candleData);
+  const cci = calculateCCI(candleData);
+  const williamsR = calculateWilliamsR(candleData);
+  const roc = calculateROC(prices);
+  const mfi = calculateMFI(candleData);
+  const parabolicSAR = calculateParabolicSAR(candleData);
+  const obv = calculateOBV(candleData);
+  const vwap = calculateVWAP(candleData);
+  const supertrend = calculateSupertrend(candleData);
+  const marketStructure = analyzeMarketStructure(candleData);
+  const bollingerBands = calculateBollingerBands(prices);
 
   const indicators: TradingSignal['indicators'] = [];
   let buyVotes = 0;
@@ -258,6 +284,311 @@ export function generateAdvancedTradingSignals(
   } else if (candlePattern.signal === 'bearish') {
     sellVotes += 2;
   }
+
+  // 7. Stochastic (Peso: 2)
+  let stochSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+  let stochExplanation = '';
+  const stochWeight = 2;
+
+  if (stochastic.signal === 'oversold' && stochastic.k < 20) {
+    stochSignal = 'buy';
+    buyVotes += 2;
+    stochExplanation = `Stochastic en SOBREVENTA (K:${stochastic.k.toFixed(1)}). Señal de posible rebote alcista. Cuando %K está por debajo de 20, históricamente el precio tiende a rebotar.`;
+  } else if (stochastic.signal === 'overbought' && stochastic.k > 80) {
+    stochSignal = 'sell';
+    sellVotes += 2;
+    stochExplanation = `Stochastic en SOBRECOMPRA (K:${stochastic.k.toFixed(1)}). Señal de posible corrección bajista. Cuando %K supera 80, el precio suele corregir.`;
+  } else {
+    stochExplanation = `Stochastic neutral (K:${stochastic.k.toFixed(1)}, D:${stochastic.d.toFixed(1)}). Sin señal clara de extremos.`;
+  }
+
+  indicators.push({
+    name: 'Stochastic',
+    signal: stochSignal,
+    value: `K:${stochastic.k.toFixed(1)}`,
+    explanation: stochExplanation,
+    weight: stochWeight
+  });
+
+  // 8. CCI (Peso: 2)
+  let cciSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+  let cciExplanation = '';
+  const cciWeight = 2;
+
+  if (cci.signal === 'oversold') {
+    cciSignal = 'buy';
+    buyVotes += 2;
+    cciExplanation = `CCI en SOBREVENTA (${cci.cci.toFixed(1)}). El precio se ha desviado mucho por debajo de su promedio. Señal de reversión alcista potencial.`;
+  } else if (cci.signal === 'overbought') {
+    cciSignal = 'sell';
+    sellVotes += 2;
+    cciExplanation = `CCI en SOBRECOMPRA (${cci.cci.toFixed(1)}). El precio se ha desviado mucho por encima de su promedio. Señal de reversión bajista potencial.`;
+  } else if (cci.signal === 'bullish') {
+    cciSignal = 'buy';
+    buyVotes += 1;
+    cciExplanation = `CCI positivo (${cci.cci.toFixed(1)}). Precio por encima del promedio, tendencia alcista leve.`;
+  } else if (cci.signal === 'bearish') {
+    cciSignal = 'sell';
+    sellVotes += 1;
+    cciExplanation = `CCI negativo (${cci.cci.toFixed(1)}). Precio por debajo del promedio, tendencia bajista leve.`;
+  } else {
+    cciExplanation = `CCI neutral (${cci.cci.toFixed(1)}). Precio cerca de su promedio estadístico.`;
+  }
+
+  indicators.push({
+    name: 'CCI',
+    signal: cciSignal,
+    value: cci.cci.toFixed(1),
+    explanation: cciExplanation,
+    weight: cciWeight
+  });
+
+  // 9. Williams %R (Peso: 2)
+  let williamsSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+  let williamsExplanation = '';
+  const williamsWeight = 2;
+
+  if (williamsR.signal === 'oversold') {
+    williamsSignal = 'buy';
+    buyVotes += 2;
+    williamsExplanation = `Williams %R en SOBREVENTA (${williamsR.williamsR.toFixed(1)}). Indica que el precio está cerca del mínimo del rango reciente. Posible rebote.`;
+  } else if (williamsR.signal === 'overbought') {
+    williamsSignal = 'sell';
+    sellVotes += 2;
+    williamsExplanation = `Williams %R en SOBRECOMPRA (${williamsR.williamsR.toFixed(1)}). Indica que el precio está cerca del máximo del rango reciente. Posible corrección.`;
+  } else {
+    williamsExplanation = `Williams %R neutral (${williamsR.williamsR.toFixed(1)}). Precio en zona intermedia del rango.`;
+  }
+
+  indicators.push({
+    name: 'Williams %R',
+    signal: williamsSignal,
+    value: williamsR.williamsR.toFixed(1),
+    explanation: williamsExplanation,
+    weight: williamsWeight
+  });
+
+  // 10. ROC - Rate of Change (Peso: 2)
+  let rocSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+  let rocExplanation = '';
+  const rocWeight = 2;
+
+  if (roc.signal === 'strong-bullish') {
+    rocSignal = 'buy';
+    buyVotes += 2;
+    rocExplanation = `ROC FUERTEMENTE ALCISTA (+${roc.roc.toFixed(2)}%). El precio ha subido más del 5% en el período. Momentum alcista muy fuerte.`;
+  } else if (roc.signal === 'bullish') {
+    rocSignal = 'buy';
+    buyVotes += 1;
+    rocExplanation = `ROC Alcista (+${roc.roc.toFixed(2)}%). Momentum positivo, precio en tendencia alcista.`;
+  } else if (roc.signal === 'strong-bearish') {
+    rocSignal = 'sell';
+    sellVotes += 2;
+    rocExplanation = `ROC FUERTEMENTE BAJISTA (${roc.roc.toFixed(2)}%). El precio ha caído más del 5% en el período. Momentum bajista muy fuerte.`;
+  } else if (roc.signal === 'bearish') {
+    rocSignal = 'sell';
+    sellVotes += 1;
+    rocExplanation = `ROC Bajista (${roc.roc.toFixed(2)}%). Momentum negativo, precio en tendencia bajista.`;
+  } else {
+    rocExplanation = `ROC Neutral (${roc.roc.toFixed(2)}%). Cambio de precio mínimo, sin momentum claro.`;
+  }
+
+  indicators.push({
+    name: 'ROC (Momentum)',
+    signal: rocSignal,
+    value: `${roc.roc > 0 ? '+' : ''}${roc.roc.toFixed(2)}%`,
+    explanation: rocExplanation,
+    weight: rocWeight
+  });
+
+  // 11. MFI - Money Flow Index (Peso: 2)
+  let mfiSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+  let mfiExplanation = '';
+  const mfiWeight = 2;
+
+  if (mfi.signal === 'oversold') {
+    mfiSignal = 'buy';
+    buyVotes += 2;
+    mfiExplanation = `MFI en SOBREVENTA (${mfi.mfi.toFixed(1)}). El flujo de dinero indica presión vendedora excesiva. Con volumen, es señal de reversión alcista fuerte.`;
+  } else if (mfi.signal === 'overbought') {
+    mfiSignal = 'sell';
+    sellVotes += 2;
+    mfiExplanation = `MFI en SOBRECOMPRA (${mfi.mfi.toFixed(1)}). El flujo de dinero indica presión compradora excesiva. Posible toma de ganancias próxima.`;
+  } else {
+    mfiExplanation = `MFI neutral (${mfi.mfi.toFixed(1)}). Flujo de dinero equilibrado entre compradores y vendedores.`;
+  }
+
+  indicators.push({
+    name: 'MFI (Vol+RSI)',
+    signal: mfiSignal,
+    value: mfi.mfi.toFixed(1),
+    explanation: mfiExplanation,
+    weight: mfiWeight
+  });
+
+  // 12. Parabolic SAR (Peso: 2)
+  let sarSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+  let sarExplanation = '';
+  const sarWeight = 2;
+
+  if (parabolicSAR.signal === 'buy') {
+    sarSignal = 'buy';
+    buyVotes += 2;
+    sarExplanation = `SAR genera señal de COMPRA. El precio cruzó por encima del SAR (${parabolicSAR.sar.toFixed(2)}). Cambio de tendencia a alcista.`;
+  } else if (parabolicSAR.signal === 'sell') {
+    sarSignal = 'sell';
+    sellVotes += 2;
+    sarExplanation = `SAR genera señal de VENTA. El precio cruzó por debajo del SAR (${parabolicSAR.sar.toFixed(2)}). Cambio de tendencia a bajista.`;
+  } else if (parabolicSAR.trend === 'bullish') {
+    sarSignal = 'buy';
+    buyVotes += 1;
+    sarExplanation = `SAR alcista. Precio (${currentPrice.toFixed(2)}) por encima de SAR (${parabolicSAR.sar.toFixed(2)}). Mantén posiciones largas.`;
+  } else {
+    sarSignal = 'sell';
+    sellVotes += 1;
+    sarExplanation = `SAR bajista. Precio (${currentPrice.toFixed(2)}) por debajo de SAR (${parabolicSAR.sar.toFixed(2)}). Evita posiciones largas.`;
+  }
+
+  indicators.push({
+    name: 'Parabolic SAR',
+    signal: sarSignal,
+    value: parabolicSAR.sar.toFixed(2),
+    explanation: sarExplanation,
+    weight: sarWeight
+  });
+
+  // 13. OBV - On Balance Volume (Peso: 2)
+  let obvSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+  let obvExplanation = '';
+  const obvWeight = 2;
+
+  if (obv.signal === 'bullish') {
+    obvSignal = 'buy';
+    buyVotes += 2;
+    obvExplanation = `OBV muestra ACUMULACIÓN. El volumen está respaldando el movimiento alcista. Los "manos fuertes" están comprando.`;
+  } else if (obv.signal === 'bearish') {
+    obvSignal = 'sell';
+    sellVotes += 2;
+    obvExplanation = `OBV muestra DISTRIBUCIÓN. El volumen está respaldando el movimiento bajista. Los "manos fuertes" están vendiendo.`;
+  } else {
+    obvExplanation = `OBV neutral. No hay acumulación ni distribución clara basada en volumen.`;
+  }
+
+  indicators.push({
+    name: 'OBV (Volumen)',
+    signal: obvSignal,
+    value: obv.trend,
+    explanation: obvExplanation,
+    weight: obvWeight
+  });
+
+  // 14. VWAP (Peso: 2)
+  let vwapSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+  let vwapExplanation = '';
+  const vwapWeight = 2;
+
+  if (vwap.signal === 'bullish') {
+    vwapSignal = 'buy';
+    buyVotes += 2;
+    vwapExplanation = `Precio SOBRE VWAP (${vwap.vwap.toFixed(2)}). Los compradores están pagando más que el promedio ponderado por volumen. Señal alcista.`;
+  } else if (vwap.signal === 'bearish') {
+    vwapSignal = 'sell';
+    sellVotes += 2;
+    vwapExplanation = `Precio BAJO VWAP (${vwap.vwap.toFixed(2)}). Los vendedores dominan, precio por debajo del promedio ponderado por volumen. Señal bajista.`;
+  } else {
+    vwapExplanation = `Precio cerca de VWAP (${vwap.vwap.toFixed(2)}). Equilibrio entre compradores y vendedores.`;
+  }
+
+  indicators.push({
+    name: 'VWAP',
+    signal: vwapSignal,
+    value: vwap.vwap.toFixed(2),
+    explanation: vwapExplanation,
+    weight: vwapWeight
+  });
+
+  // 15. Supertrend (Peso: 3)
+  let supertrendSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+  let supertrendExplanation = '';
+  const supertrendWeight = 3;
+
+  if (supertrend.signal === 'buy') {
+    supertrendSignal = 'buy';
+    buyVotes += 3;
+    supertrendExplanation = `SUPERTREND genera COMPRA! Cambio de tendencia confirmado. El precio cruzó por encima de Supertrend (${supertrend.supertrend.toFixed(2)}). Señal muy confiable.`;
+  } else if (supertrend.signal === 'sell') {
+    supertrendSignal = 'sell';
+    sellVotes += 3;
+    supertrendExplanation = `SUPERTREND genera VENTA! Cambio de tendencia confirmado. El precio cruzó por debajo de Supertrend (${supertrend.supertrend.toFixed(2)}). Señal muy confiable.`;
+  } else if (supertrend.trend === 'bullish') {
+    supertrendSignal = 'buy';
+    buyVotes += 1;
+    supertrendExplanation = `Supertrend ALCISTA. Precio por encima de la línea (${supertrend.supertrend.toFixed(2)}). Tendencia alcista activa, mantén largos.`;
+  } else {
+    supertrendSignal = 'sell';
+    sellVotes += 1;
+    supertrendExplanation = `Supertrend BAJISTA. Precio por debajo de la línea (${supertrend.supertrend.toFixed(2)}). Tendencia bajista activa, evita largos.`;
+  }
+
+  indicators.push({
+    name: 'Supertrend',
+    signal: supertrendSignal,
+    value: supertrend.trend === 'bullish' ? '🟢' : '🔴',
+    explanation: supertrendExplanation,
+    weight: supertrendWeight
+  });
+
+  // 16. Market Structure (Peso: 3)
+  let structureSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+  let structureExplanation = '';
+  const structureWeight = 3;
+
+  if (marketStructure.structure === 'uptrend') {
+    structureSignal = 'buy';
+    buyVotes += 3;
+    structureExplanation = `Estructura de mercado en UPTREND. ${marketStructure.higherHighs} Higher Highs consecutivos. El mercado está haciendo máximos más altos - tendencia alcista clara.`;
+  } else if (marketStructure.structure === 'downtrend') {
+    structureSignal = 'sell';
+    sellVotes += 3;
+    structureExplanation = `Estructura de mercado en DOWNTREND. ${marketStructure.lowerLows} Lower Lows consecutivos. El mercado está haciendo mínimos más bajos - tendencia bajista clara.`;
+  } else if (marketStructure.structure === 'consolidation') {
+    structureExplanation = `Mercado en CONSOLIDACIÓN. Rango estrecho, baja volatilidad. Espera breakout antes de operar.`;
+  } else {
+    structureExplanation = `Mercado en RANGO. Sin tendencia clara. Mezclando HHs y LLs. Mercado indeciso.`;
+  }
+
+  indicators.push({
+    name: 'Estructura Mercado',
+    signal: structureSignal,
+    value: marketStructure.structure.toUpperCase(),
+    explanation: structureExplanation,
+    weight: structureWeight
+  });
+
+  // 17. Bollinger Bands (Peso: 2)
+  let bbSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+  let bbExplanation = '';
+  const bbWeight = 2;
+
+  if (bollingerBands.percentB < 0.2) {
+    bbSignal = 'buy';
+    buyVotes += 2;
+    bbExplanation = `Precio en banda INFERIOR de Bollinger (%B: ${(bollingerBands.percentB * 100).toFixed(1)}%). Posible sobreventa, espera rebote hacia la media (${bollingerBands.middle.toFixed(2)}).`;
+  } else if (bollingerBands.percentB > 0.8) {
+    bbSignal = 'sell';
+    sellVotes += 2;
+    bbExplanation = `Precio en banda SUPERIOR de Bollinger (%B: ${(bollingerBands.percentB * 100).toFixed(1)}%). Posible sobrecompra, espera retroceso hacia la media (${bollingerBands.middle.toFixed(2)}).`;
+  } else {
+    bbExplanation = `Precio dentro de Bollinger Bands (%B: ${(bollingerBands.percentB * 100).toFixed(1)}%). Bandwidth: ${bollingerBands.bandwidth.toFixed(2)}%. ${bollingerBands.bandwidth < 5 ? 'Bandas estrechas - posible breakout próximo' : 'Volatilidad normal'}.`;
+  }
+
+  indicators.push({
+    name: 'Bollinger Bands',
+    signal: bbSignal,
+    value: `${(bollingerBands.percentB * 100).toFixed(0)}%`,
+    explanation: bbExplanation,
+    weight: bbWeight
+  });
 
   // ==================== DETERMINAR SEÑAL FINAL ====================
   const totalVotes = buyVotes + sellVotes;

@@ -766,9 +766,9 @@ export function TradingDashboard() {
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Desktop: Grid de 4 columnas optimizado - TODO visible sin scroll */}
-              <div className={isMobile ? 'space-y-2' : 'grid grid-cols-1 lg:grid-cols-4 gap-2'}>
-                {/* Column 1: Market List */}
+              {/* Desktop: Grid de 3 columnas, Mobile: Una vista a la vez */}
+              <div className={isMobile ? 'space-y-2' : 'grid grid-cols-1 lg:grid-cols-3 gap-2'}>
+                {/* Left Column: Market List - Sticky en desktop */}
                 {(!isMobile || mobileView === 'market') && (
                   <div className="lg:col-span-1">
                     <div className="lg:sticky lg:top-8 lg:max-h-[calc(100vh-100px)] overflow-y-auto">
@@ -780,12 +780,12 @@ export function TradingDashboard() {
                   </div>
                 )}
 
-                {/* Column 2-3: Gráfico y Análisis Técnico apilados */}
+                {/* Middle Column: Gráfico y Análisis apilados */}
                 {(!isMobile || mobileView === 'chart' || mobileView === 'signals') && selectedAsset && (
-                  <div className="lg:col-span-2 space-y-2">
-                    {/* Gráfico más compacto */}
+                  <div className="lg:col-span-1 flex flex-col gap-2">
+                    {/* Gráfico */}
                     {candlestickData.length > 0 && (
-                      <div className="h-[280px]">
+                      <div className="flex-shrink-0">
                         <CandlestickChart
                           data={candlestickData}
                           volumeData={volumeData}
@@ -800,9 +800,9 @@ export function TradingDashboard() {
                       </div>
                     )}
 
-                    {/* Análisis Técnico compacto */}
+                    {/* Análisis Técnico */}
                     {candlestickData.length > 0 && (
-                      <div className="max-h-[400px] overflow-y-auto">
+                      <div className="flex-shrink-0 max-h-[400px] overflow-y-auto">
                         <AdvancedTradingSignals
                           candleData={candlestickData}
                           volumeData={volumeData}
@@ -813,22 +813,24 @@ export function TradingDashboard() {
                   </div>
                 )}
 
-                {/* Column 4: Trading Form y Posiciones apiladas */}
+                {/* Right Column: Futures Trading Form y Posiciones apiladas */}
                 {(!isMobile || mobileView === 'trade' || mobileView === 'portfolio') && (
-                  <div className="lg:col-span-1 space-y-2">
+                  <div className="lg:col-span-1 flex flex-col gap-2">
                     {/* Futures Trading Form */}
                     {(!isMobile || mobileView === 'trade') && (
-                      <FuturesTradingForm
-                        assets={assets}
-                        selectedAsset={selectedAsset}
-                        availableBalance={portfolio.balance}
-                        onOpenPosition={handleOpenPosition}
-                      />
+                      <div className="flex-shrink-0">
+                        <FuturesTradingForm
+                          assets={assets}
+                          selectedAsset={selectedAsset}
+                          availableBalance={portfolio.balance}
+                          onOpenPosition={handleOpenPosition}
+                        />
+                      </div>
                     )}
 
                     {/* Futures Positions */}
                     {(!isMobile || mobileView === 'portfolio') && (
-                      <div className="lg:max-h-[400px] overflow-y-auto">
+                      <div className="flex-shrink-0 lg:sticky lg:top-8">
                         <FuturesPositionList
                           positions={futuresPositions.filter(p => p.status === 'OPEN')}
                           onClosePosition={handleClosePosition}

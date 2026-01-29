@@ -5,25 +5,32 @@
  * - Información de la posición (Long/Short, leverage, margin)
  * - P&L en tiempo real
  * - Precio de liquidación
+ * - RECOMENDACIÓN DE CIERRE basada en señales técnicas
  * - Botón para cerrar posición
  * - Alerts si está cerca de liquidación
  */
 
 import React from 'react';
-import { TrendingUp, TrendingDown, X, AlertTriangle, Target } from 'lucide-react';
+import { TrendingUp, TrendingDown, X, AlertTriangle, Target, CheckCircle, XCircle, MinusCircle } from 'lucide-react';
 import type { FuturesPosition } from '../../types/trading';
+import type { CandlestickData, VolumeData } from '../../lib/priceHistory';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { formatCurrency, formatPercentage } from '../../utils/formatters';
+import { generateAdvancedTradingSignals } from '../../lib/advancedSignals';
 
 interface FuturesPositionListProps {
   positions: FuturesPosition[];
   onClosePosition: (position: FuturesPosition) => void;
+  candleDataMap?: Map<string, CandlestickData[]>;
+  volumeDataMap?: Map<string, VolumeData[]>;
 }
 
 export function FuturesPositionList({
   positions,
-  onClosePosition
+  onClosePosition,
+  candleDataMap,
+  volumeDataMap
 }: FuturesPositionListProps) {
   if (positions.length === 0) {
     return (
@@ -48,7 +55,7 @@ export function FuturesPositionList({
       <CardHeader>
         <CardTitle>⚡ Posiciones de Futuros ({positions.length})</CardTitle>
         <p className="text-xs text-gray-500 mt-1">
-          Posiciones abiertas con leverage
+          Posiciones abiertas • Señales actualizadas
         </p>
       </CardHeader>
       <CardContent>
@@ -58,6 +65,8 @@ export function FuturesPositionList({
               key={position.id}
               position={position}
               onClose={() => onClosePosition(position)}
+              candleData={candleDataMap?.get(position.asset)}
+              volumeData={volumeDataMap?.get(position.asset)}
             />
           ))}
         </div>
@@ -69,10 +78,14 @@ export function FuturesPositionList({
 // Componente individual para cada posición
 function PositionCard({
   position,
-  onClose
+  onClose,
+  candleData,
+  volumeData
 }: {
   position: FuturesPosition;
   onClose: () => void;
+  candleData?: CandlestickData[];
+  volumeData?: VolumeData[];
 }) {
   const isLong = position.side === 'LONG';
   const isProfit = position.unrealizedPnL >= 0;
@@ -85,6 +98,75 @@ function PositionCard({
   // Calcular si el stop loss o take profit están cerca
   const hasStopLoss = position.stopLoss !== undefined;
   const hasTakeProfit = position.takeProfit !== undefined;
+
+  // CALCULAR SEÑAL TÉCNICA ACTUAL
+  let currentSignal: 'strong-buy' | 'buy' | 'neutral' | 'sell' | 'strong-sell' | null = null;
+  let signalConfidence = 0;
+  let signalRecommendation = '';
+  let actionRecommendation: 'hold' | 'consider-close' | 'close-urgently' | 'take-profit' = 'hold';
+  let actionColor = '';
+  let actionIcon: React.ReactNode = null;
+  let actionExplanation = '';
+
+  if (candleData && volumeData && candleData.length >= 50) {
+    try {
+      const signals = generateAdvancedTradingSignals(candleData, volumeData);
+      currentSignal = signals.type;
+      signalConfidence = signals.confidence;
+      signalRecommendation = signals.recommendation;
+
+      // DETERMINAR ACCIÓN RECOMENDADA basada en si la señal va EN CONTRA de tu posición
+      if (isLong) {
+        // Tienes LONG - quieres señales alcistas
+        if (currentSignal === 'strong-sell' || currentSignal === 'sell') {
+          actionRecommendation = 'close-urgently';
+          actionColor = 'bg-red-100 border-red-400';
+          actionIcon = <XCircle className="w-4 h-4 text-red-600" />;
+          actionExplanation = `Las señales técnicas (${currentSignal.toUpperCase()}) sugieren CERRAR tu LONG. El mercado va en contra de tu posición.`;
+        } else if (currentSignal === 'neutral') {
+          actionRecommendation = 'consider-close';
+          actionColor = 'bg-yellow-100 border-yellow-400';
+          actionIcon = <MinusCircle className="w-4 h-4 text-yellow-600" />;
+          actionExplanation = 'Señales neutrales. Considera tomar ganancias si tienes profit o esperar confirmación alcista.';
+        } else if (isProfit && (currentSignal === 'buy' || currentSignal === 'strong-buy')) {
+          actionRecommendation = 'take-profit';
+          actionColor = 'bg-blue-100 border-blue-400';
+          actionIcon = <CheckCircle className="w-4 h-4 text-blue-600" />;
+          actionExplanation = `Señales alcistas (${currentSignal.toUpperCase()}) confirman tu LONG. Considera tomar ganancias parciales o mover stop loss a profit.`;
+        } else {
+          actionRecommendation = 'hold';
+          actionColor = 'bg-green-100 border-green-400';
+          actionIcon = <CheckCircle className="w-4 h-4 text-green-600" />;
+          actionExplanation = `Señales alcistas (${currentSignal.toUpperCase()}) apoyan tu LONG. Mantén la posición con stop loss activo.`;
+        }
+      } else {
+        // Tienes SHORT - quieres señales bajistas
+        if (currentSignal === 'strong-buy' || currentSignal === 'buy') {
+          actionRecommendation = 'close-urgently';
+          actionColor = 'bg-red-100 border-red-400';
+          actionIcon = <XCircle className="w-4 h-4 text-red-600" />;
+          actionExplanation = `Las señales técnicas (${currentSignal.toUpperCase()}) sugieren CERRAR tu SHORT. El mercado va en contra de tu posición.`;
+        } else if (currentSignal === 'neutral') {
+          actionRecommendation = 'consider-close';
+          actionColor = 'bg-yellow-100 border-yellow-400';
+          actionIcon = <MinusCircle className="w-4 h-4 text-yellow-600" />;
+          actionExplanation = 'Señales neutrales. Considera tomar ganancias si tienes profit o esperar confirmación bajista.';
+        } else if (isProfit && (currentSignal === 'sell' || currentSignal === 'strong-sell')) {
+          actionRecommendation = 'take-profit';
+          actionColor = 'bg-blue-100 border-blue-400';
+          actionIcon = <CheckCircle className="w-4 h-4 text-blue-600" />;
+          actionExplanation = `Señales bajistas (${currentSignal.toUpperCase()}) confirman tu SHORT. Considera tomar ganancias parciales o mover stop loss a profit.`;
+        } else {
+          actionRecommendation = 'hold';
+          actionColor = 'bg-green-100 border-green-400';
+          actionIcon = <CheckCircle className="w-4 h-4 text-green-600" />;
+          actionExplanation = `Señales bajistas (${currentSignal.toUpperCase()}) apoyan tu SHORT. Mantén la posición con stop loss activo.`;
+        }
+      }
+    } catch (error) {
+      console.error('Error calculating signals for position:', error);
+    }
+  }
 
   const handleClose = () => {
     const confirmMessage = `
@@ -147,6 +229,40 @@ Precio Actual: ${formatCurrency(position.currentPrice)}
           {isProfit ? '+' : ''}{formatPercentage(position.unrealizedPnLPercentage)}
         </div>
       </div>
+
+      {/* RECOMENDACIÓN DE ACCIÓN - NUEVO */}
+      {currentSignal && (
+        <div className={`border-2 rounded-lg p-2 mb-3 ${actionColor}`}>
+          <div className="flex items-start gap-2">
+            {actionIcon}
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-gray-900">
+                  {actionRecommendation === 'close-urgently' && '🚨 CERRAR POSICIÓN'}
+                  {actionRecommendation === 'consider-close' && '⚠️ Considerar Cierre'}
+                  {actionRecommendation === 'take-profit' && '💰 Tomar Ganancias'}
+                  {actionRecommendation === 'hold' && '✅ Mantener Posición'}
+                </span>
+                <span className="text-xs font-bold text-gray-700">
+                  Señal: {currentSignal.toUpperCase().replace('-', ' ')} ({signalConfidence}%)
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-700 leading-tight">
+                {actionExplanation}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Si no hay datos para señales */}
+      {!currentSignal && candleData && candleData.length < 50 && (
+        <div className="bg-gray-100 border border-gray-300 rounded p-2 mb-3">
+          <p className="text-[10px] text-gray-600 text-center">
+            📊 Acumulando datos históricos para generar señales técnicas...
+          </p>
+        </div>
+      )}
 
       {/* Position Details */}
       <div className="grid grid-cols-2 gap-2 text-sm mb-3">

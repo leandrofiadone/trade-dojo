@@ -831,6 +831,8 @@ export function TradingDashboard() {
                           <FuturesPositionList
                             positions={futuresPositions.filter(p => p.status === 'OPEN')}
                             onClosePosition={handleClosePosition}
+                            candleDataMap={selectedAsset ? new Map([[selectedAsset.id, candlestickData]]) : undefined}
+                            volumeDataMap={selectedAsset ? new Map([[selectedAsset.id, volumeData]]) : undefined}
                           />
                         </div>
                       )}

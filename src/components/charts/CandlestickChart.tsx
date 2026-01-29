@@ -332,6 +332,91 @@ export function CandlestickChart({
         indicatorSeriesRefs.current.push(upperBand, middleBand, lowerBand);
       }
 
+      // RSI - Oscilador en panel separado
+      if (activeIndicators.rsi) {
+        const rsiData = calculateRSI(data, 14);
+        const rsiSeries = chart.addLineSeries({
+          color: '#4CAF50',
+          lineWidth: 2,
+          title: 'RSI (14)',
+          priceScaleId: 'rsi',
+        });
+        rsiSeries.priceScale().applyOptions({
+          scaleMargins: {
+            top: 0.85,
+            bottom: 0,
+          },
+        });
+        rsiSeries.setData(rsiData);
+        indicatorSeriesRefs.current.push(rsiSeries);
+      }
+
+      // MACD - Oscilador en panel separado
+      if (activeIndicators.macd) {
+        const macdData = calculateMACD(data, 12, 26, 9);
+        const macdLine = chart.addLineSeries({
+          color: '#3F51B5',
+          lineWidth: 2,
+          title: 'MACD',
+          priceScaleId: 'macd',
+        });
+        const signalLine = chart.addLineSeries({
+          color: '#FF9800',
+          lineWidth: 2,
+          title: 'Signal',
+          priceScaleId: 'macd',
+        });
+        const histogramSeries = chart.addHistogramSeries({
+          color: '#26a69a',
+          priceFormat: {
+            type: 'price',
+            precision: 4,
+            minMove: 0.0001,
+          },
+          priceScaleId: 'macd',
+        });
+
+        macdLine.priceScale().applyOptions({
+          scaleMargins: {
+            top: 0.9,
+            bottom: 0,
+          },
+        });
+
+        macdLine.setData(macdData.macd);
+        signalLine.setData(macdData.signal);
+        histogramSeries.setData(macdData.histogram);
+        indicatorSeriesRefs.current.push(macdLine, signalLine, histogramSeries);
+      }
+
+      // Stochastic - Oscilador en panel separado
+      if (activeIndicators.stochastic) {
+        const stochData = calculateStochastic(data, 14, 3);
+        const kLine = chart.addLineSeries({
+          color: '#009688',
+          lineWidth: 2,
+          title: '%K',
+          priceScaleId: 'stochastic',
+        });
+        const dLine = chart.addLineSeries({
+          color: '#FF5722',
+          lineWidth: 2,
+          title: '%D',
+          priceScaleId: 'stochastic',
+        });
+
+        kLine.priceScale().applyOptions({
+          scaleMargins: {
+            top: 0.95,
+            bottom: 0,
+          },
+        });
+
+        kLine.setData(stochData.k);
+        dLine.setData(stochData.d);
+        indicatorSeriesRefs.current.push(kLine, dLine);
+      }
+
       chart.timeScale().scrollToRealTime();
 
       console.log('✅ Chart data updated');
